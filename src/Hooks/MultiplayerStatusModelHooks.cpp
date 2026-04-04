@@ -28,8 +28,14 @@ MAKE_AUTO_HOOK_FIND_VERBOSE(JsonConvert_DeserializeObject_MultiplayerStatusData,
         return MultiplayerCore::Models::MpStatusData::New_ctor(value);
     } else {
         DEBUG("JsonConvert_DeserializeObject_MultiplayerStatusData orig call");
-        // call orig here, remember to pass the info parameter to your orig call!
-        return JsonConvert_DeserializeObject_MultiplayerStatusData(value, info);
+        try {
+            // call orig here, remember to pass the info parameter to your orig call!
+            return JsonConvert_DeserializeObject_MultiplayerStatusData(value, info);
+        } catch (...) {
+            WARNING("JsonConvert_DeserializeObject_MultiplayerStatusData exception caught, we have invalid json somewhere, printing backtrace for debugging...");
+            Paper::Logger::Backtrace(40);
+            return nullptr;
+        }
     }
 }
 
