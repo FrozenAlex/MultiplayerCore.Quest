@@ -124,7 +124,6 @@ namespace MultiplayerCore::Objects {
 
     Beatmaps::Packets::MpBeatmapPacket* MpPlayersDataModel::FindLevelPacket(std::string_view levelHash) {
         Beatmaps::Packets::MpBeatmapPacket* packet = nullptr;
-        return packet;
         auto enumerator = _lastPlayerBeatmapPackets->GetEnumerator();
         while (enumerator.MoveNext()) {
             auto [_, p] = enumerator.Current;
