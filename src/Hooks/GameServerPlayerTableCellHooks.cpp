@@ -52,6 +52,10 @@ MAKE_AUTO_HOOK_MATCH(GameServerPlayersTableView_GetCurrentPrefab, &GlobalNamespa
     auto res = GameServerPlayersTableView_GetCurrentPrefab(self);
     if (!res->GetComponent<MultiplayerCore::UI::GameServerPlayerTableCellCustomData*>()) {
         auto customData = res->gameObject->AddComponent<MultiplayerCore::UI::GameServerPlayerTableCellCustomData*>();
+        if (!customData) {
+            ERROR("Failed to add custom data component to prefab");
+            return res;
+        }
         // Injection does not happen after awake here, so we need to manually trigger injection
         auto diContainer = BSML::Helpers::GetDiContainer();
         if (!diContainer) {
