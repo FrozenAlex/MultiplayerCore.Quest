@@ -37,6 +37,9 @@
 #include "assets.hpp"
 #include "logging.hpp"
 
+#include <algorithm>
+#include <vector>
+
 DEFINE_TYPE(MultiplayerCore::UI, MpPerPlayerUI);
 
 template<typename T>
@@ -384,9 +387,6 @@ namespace MultiplayerCore::UI {
                 for (const auto& [key, value] : reqCharItr->second) {
                     difficulties->Add(Utils::EnumUtils::GetEnumName<GlobalNamespace::BeatmapDifficulty>(key));
                 }
-                // std::transform(reqCharItr->second.begin(), reqCharItr->second.end(), difficulties.begin(), [](const auto& pair) {
-                //     return Utils::EnumUtils::GetEnumName<GlobalNamespace::BeatmapDifficulty>(pair.first);
-                // });
                 UpdateDifficultyList(difficulties);
             });
         }
@@ -436,6 +436,24 @@ namespace MultiplayerCore::UI {
         if (!segmentVert || !difficultyControl) {
             ERROR("UI Elements not created, returning...");
             return;
+        }
+
+        // Sort difficulties from Easy to ExpertPlus by enum value
+        std::vector<std::string> sortedDifficulties(_allowedDifficulties->Count);
+        for (int i = 0; i < _allowedDifficulties->Count; i++) {
+            sortedDifficulties[i] = static_cast<std::string>(_allowedDifficulties->get_Item(i));
+        }
+        std::sort(sortedDifficulties.begin(), sortedDifficulties.end(), [](const std::string& a, const std::string& b) {
+            std::string aNorm = a, bNorm = b;
+            if (aNorm == "Expert+") aNorm = "ExpertPlus";
+            if (bNorm == "Expert+") bNorm = "ExpertPlus";
+            auto aVal = Utils::EnumUtils::GetEnumValue<GlobalNamespace::BeatmapDifficulty>(aNorm);
+            auto bVal = Utils::EnumUtils::GetEnumValue<GlobalNamespace::BeatmapDifficulty>(bNorm);
+            return aVal.value__ < bVal.value__;
+        });
+        _allowedDifficulties->Clear();
+        for (auto& diff : sortedDifficulties) {
+            _allowedDifficulties->Add(diff);
         }
 
         // Updating UI has to be done on the main thread
