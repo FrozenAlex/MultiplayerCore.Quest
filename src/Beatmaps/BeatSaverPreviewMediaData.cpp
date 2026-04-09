@@ -98,11 +98,13 @@ namespace MultiplayerCore::Beatmaps {
                     auto www = webRequest->SendWebRequest();
                     while (!www->get_isDone()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+                    std::atomic<bool> done = false;
                     std::atomic<UnityEngine::AudioClip*> result = nullptr;
-                    BSML::MainThreadScheduler::Schedule([webRequest, &result](){
+                    BSML::MainThreadScheduler::Schedule([webRequest, &result, &done](){
                         result = UnityEngine::Networking::DownloadHandlerAudioClip::GetContent(webRequest);
+                        done = true;
                     });
-                    while (!result) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    while (!done) std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     return (UnityEngine::AudioClip*)result;
                 }
 
