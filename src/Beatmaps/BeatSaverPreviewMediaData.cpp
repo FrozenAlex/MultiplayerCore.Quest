@@ -1,4 +1,5 @@
 #include "Beatmaps/BeatSaverPreviewMediaData.hpp"
+#include "logging.hpp"
 #include "tasks.hpp"
 
 #include "UnityEngine/Networking/UnityWebRequestMultimedia.hpp"
@@ -46,13 +47,22 @@ namespace MultiplayerCore::Beatmaps {
                     auto coverOpt = v->GetCoverImage();
                     if (coverOpt.has_value()) {
                         auto coverBytes = ArrayW(coverOpt.value());
-
+                        
+                        std::atomic<bool> done = false;
+                        // TODO: Maybe use safeptr or something to make sure it can't get GC'd
                         std::atomic<UnityEngine::Sprite*> result = nullptr;
-                        BSML::MainThreadScheduler::Schedule([coverBytes, &result](){
-                            result = BSML::Utilities::LoadSpriteRaw(coverBytes);
+                        BSML::MainThreadScheduler::Schedule([coverBytes, &result, &done](){
+                            try {
+                                result = BSML::Utilities::LoadSpriteRaw(coverBytes);
+                                done = true;
+                            } catch (...) {
+                                ERROR("Exception while loading cover image");
+                                result = nullptr;
+                                done = true;
+                            }
                         });
 
-                        while(!result) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        while(!done) std::this_thread::sleep_for(std::chrono::milliseconds(100));
                         return (UnityEngine::Sprite*)result;
                     }
                 }
