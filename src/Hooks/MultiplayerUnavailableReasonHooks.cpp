@@ -61,7 +61,7 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavai
 
             reason.heldRef = GlobalNamespace::MultiplayerUnavailableReason(5);
             ::requiredMod = installedModInfo.id;
-            ::requiredVersion = installedModInfo.version;
+            ::requiredVersion = req.version;
 
             return true;
         }
