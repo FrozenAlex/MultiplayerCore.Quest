@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 $mod = "./mod.json"
 
 if (-not (Test-Path -Path $mod)) {
