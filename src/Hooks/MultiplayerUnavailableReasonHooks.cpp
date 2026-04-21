@@ -70,7 +70,7 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavai
 
     if (mpData->maximumAppVersion) {
         auto gameVersion = UnityEngine::Application::get_version();
-        if (semver::gt(mpData->maximumAppVersion, gameVersion)) {
+        if (semver::gt(gameVersion,mpData->maximumAppVersion)) {
             reason.heldRef = GlobalNamespace::MultiplayerUnavailableReason(6);
             maximumBsVersion = static_cast<std::string>(mpData->maximumAppVersion);
             return true;
