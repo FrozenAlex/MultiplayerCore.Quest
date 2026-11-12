@@ -1,3 +1,5 @@
+#include "beatsaber-hook/shared/threading.hpp"
+#include "beatsaber-hook/shared/safeptr.hpp"
 #include "Objects/MpLevelDownloader.hpp"
 #include "beatsaverplusplus/shared/BeatSaver.hpp"
 #include "songcore/shared/SongLoader/RuntimeSongLoader.hpp"
@@ -16,16 +18,10 @@ namespace MultiplayerCore::Objects {
     void MpLevelDownloader::ctor() {
         INVOKE_CTOR();
 
-        SongCore::API::Loading::GetSongWillBeDeletedEvent() += [this](::SongCore::SongLoader::CustomBeatmapLevel* level){
-            auto dl = downloads.find(level->levelID);
-            if (dl != downloads.end()) {
-                DEBUG("Removing download future for level: {}", level->levelID);
-                downloads.erase(dl);
-            }
-        };
     }
 
     std::shared_future<bool> MpLevelDownloader::TryDownloadLevelAsync(std::string levelId, std::function<void(double)> progress) {
+        std::lock_guard lock(downloadsMutex);
         std::shared_future<bool> fut;
         auto dl = downloads.find(levelId);
         std::future_status status = std::future_status::timeout;
@@ -38,9 +34,18 @@ namespace MultiplayerCore::Objects {
                 DEBUG("Download already finished: {}", levelId);
         }
 
-        if (dl == downloads.end() || (status == std::future_status::ready && !fut.get())) {
+        // Recheck local presence: a previously downloaded map may have been deleted.
+        if (dl == downloads.end() || (status == std::future_status::ready &&
+            (!fut.get() || !SongCore::API::Loading::GetLevelByLevelID(levelId)))) {
             DEBUG("Starting download: {}", levelId);
-            downloads[levelId] = fut = il2cpp_utils::il2cpp_async(std::launch::async, std::bind(&MpLevelDownloader::TryDownloadLevelInternal, this, levelId, progress));
+            safe_ptr<MpLevelDownloader*> owner(this);
+            downloads[levelId] = fut = il2cpp_async(std::launch::async, [owner, levelId, progress]() mutable {
+                // A cached future may retain its callable after completion. Release
+                // the roots when this invocation exits, including its progress owner.
+                auto liveOwner = std::move(owner);
+                auto liveProgress = std::move(progress);
+                return liveOwner->TryDownloadLevelInternal(levelId, std::move(liveProgress));
+            });
         }
 
         return fut;
@@ -68,19 +73,20 @@ namespace MultiplayerCore::Objects {
                 ERROR("Could not find version for hash {}", hash);
                 return false;
             }
-            std::optional<std::string> downloadPath;
+            auto completed = std::make_shared<std::promise<std::optional<std::filesystem::path>>>();
+            auto result = completed->get_future();
             DEBUG("Starting download of beatmap: {}", hash);
-            v->DownloadBeatmapAsync(*bmRes.responseData, [&downloadPath](const std::optional<std::filesystem::path>& path){
-                downloadPath = path.has_value() ? path->string() : std::string();
+            v->DownloadBeatmapAsync(*bmRes.responseData, [completed](const std::optional<std::filesystem::path>& path){
+                completed->set_value(path);
             }, progress);
 
-            while(!downloadPath.has_value()) std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            if (downloadPath.value().empty()) {
+            auto downloadPath = result.get();
+            if (!downloadPath || downloadPath->empty()) {
                 WARNING("Download failed for {}", bmRes.responseData->GetId());
                 return false;
             }
 
-            DEBUG("Download finished succesfully to '{}', refreshing songs now", downloadPath.value());
+            DEBUG("Download finished successfully to '{}', refreshing songs now", downloadPath->string());
             SongCore::API::Loading::RefreshSongs(false).wait();
 
             auto level = SongCore::API::Loading::GetLevelByHash(hash);

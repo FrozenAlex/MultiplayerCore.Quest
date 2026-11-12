@@ -26,7 +26,7 @@ namespace MultiplayerCore::Beatmaps {
 
     void BeatSaverBeatmapLevel::ctor_1(StringW hash) {
         INVOKE_CTOR();
-        INVOKE_BASE_CTOR(classof(Abstractions:: MpBeatmapLevel*));
+        INVOKE_BASE_CTOR(i2c::class_of<Abstractions:: MpBeatmapLevel*>());
 
         set_levelHash(static_cast<std::string>(hash));
     }
@@ -43,7 +43,7 @@ namespace MultiplayerCore::Beatmaps {
             beatmap.GetMetadata().GetSongSubName(),
             beatmap.GetMetadata().GetSongAuthorName(),
             ArrayW<StringW>({ StringW(beatmap.GetMetadata().GetLevelAuthorName()) }),
-            ArrayW<StringW>::Empty(),
+            ArrayW<StringW>::New(),
             beatmap.GetMetadata().GetBPM(),
             -6.0f,
             0,

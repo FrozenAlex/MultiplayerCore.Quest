@@ -18,7 +18,7 @@ MAKE_AUTO_HOOK_MATCH(NetworkPlayerEntitlementChecker_Start, &::GlobalNamespace::
     if (!lock) {
         NetworkPlayerEntitlementChecker_Start(self);
     } else {
-        static auto customKlass = classof(MpEntitlementChecker*);
+        static auto customKlass = i2c::class_of<MpEntitlementChecker*>();
         if (self->klass == customKlass)
             reinterpret_cast<MpEntitlementChecker*>(self)->Start_override();
         else
@@ -32,7 +32,7 @@ MAKE_AUTO_HOOK_MATCH(NetworkPlayerEntitlementChecker_OnDestroy, &::GlobalNamespa
     if (!lock) {
         NetworkPlayerEntitlementChecker_OnDestroy(self);
     } else {
-        static auto customKlass = classof(MpEntitlementChecker*);
+        static auto customKlass = i2c::class_of<MpEntitlementChecker*>();
         if (self->klass == customKlass)
             reinterpret_cast<MpEntitlementChecker*>(self)->OnDestroy_override();
         else
@@ -47,7 +47,7 @@ MAKE_AUTO_HOOK_MATCH(NetworkPlayerEntitlementChecker_HandleGetIsEntitledToLevel,
     if (!lock) {
         NetworkPlayerEntitlementChecker_HandleGetIsEntitledToLevel(self, userId, levelId);
     } else {
-        static auto customKlass = classof(MpEntitlementChecker*);
+        static auto customKlass = i2c::class_of<MpEntitlementChecker*>();
         if (self->klass == customKlass)
             reinterpret_cast<MpEntitlementChecker*>(self)->HandleGetIsEntitledToLevel_override(userId, levelId);
         else
@@ -62,7 +62,7 @@ MAKE_AUTO_HOOK_MATCH(NetworkPlayerEntitlementChecker_GetEntitlementStatus, &::Gl
     if (!lock) {
         return NetworkPlayerEntitlementChecker_GetEntitlementStatus(self, levelId);
     } else {
-        static auto customKlass = classof(MpEntitlementChecker*);
+        static auto customKlass = i2c::class_of<MpEntitlementChecker*>();
         if (self->klass == customKlass)
             return reinterpret_cast<MpEntitlementChecker*>(self)->GetEntitlementStatus_override(levelId);
         else

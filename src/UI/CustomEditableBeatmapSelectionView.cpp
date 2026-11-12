@@ -16,21 +16,22 @@ namespace MultiplayerCore::UI {
         _mpBeatmapLevelProvider = mpBeatmapLevelProvider;
     }
 
-    void CustomEditableBeatmapSelectionView::SetBeatmap(ByRef<GlobalNamespace::BeatmapKey> beatmapKey) {
-        static auto method = il2cpp_utils::il2cpp_type_check::MetadataGetter<&GlobalNamespace::EditableBeatmapSelectionView::SetBeatmap>::methodInfo();
-        static auto base = [](GlobalNamespace::EditableBeatmapSelectionView* self, ByRef<GlobalNamespace::BeatmapKey> beatmapKey){ return il2cpp_utils::RunMethodRethrow<void, false>(self, method, beatmapKey); };
-        if (!beatmapKey->IsValid()) {
+    void CustomEditableBeatmapSelectionView::SetBeatmap(by_ref<const GlobalNamespace::BeatmapKey> beatmapKey) {
+        // The generated virtual wrapper dispatches back to this override, even
+        // with C++ base qualification. Invoke the base MethodInfo explicitly.
+        static auto method = i2c::metadata_getter<&GlobalNamespace::EditableBeatmapSelectionView::SetBeatmap>::method_info();
+        if (!GlobalNamespace::BeatmapKey(*beatmapKey).IsValid()) {
             DEBUG("beatmapkey was invalid");
-            return base(this, beatmapKey);
+            return cordl_internals::RunMethodRethrow<void>(this, method, beatmapKey);
         }
 
         auto levelHash = HashFromLevelID(beatmapKey->levelId);
         if (levelHash.empty()) { // level wasn't custom
             DEBUG("Level {} wasn't custom", beatmapKey->levelId);
-            return base(this, beatmapKey);
+            return cordl_internals::RunMethodRethrow<void>(this, method, beatmapKey);
         }
 
-        StartCoroutine(custom_types::Helpers::CoroutineHelper::New(SetBeatmapCoroutine(beatmapKey.heldRef, levelHash)));
+        StartCoroutine(custom_types::Helpers::CoroutineHelper::New(SetBeatmapCoroutine((*beatmapKey), levelHash)));
     }
 
     custom_types::Helpers::Coroutine CustomEditableBeatmapSelectionView::SetBeatmapCoroutine(GlobalNamespace::BeatmapKey beatmapKey, std::string levelHash) {
@@ -60,7 +61,7 @@ namespace MultiplayerCore::UI {
 
         level = _mpBeatmapLevelProvider->AddBasicBeatmapDataToLevel(level, beatmapKey, packet);
 
-        _levelBar->Setup(level, beatmapKey.difficulty, beatmapKey.beatmapCharacteristic);
+        _levelBar->Setup(level, beatmapKey.difficulty, beatmapKey.characteristic);
         co_return;
     }
 }

@@ -32,7 +32,7 @@ DECLARE_CLASS_CODEGEN_INTERFACES(MultiplayerCore::UI, MpPerPlayerUI, System::Obj
     DECLARE_INSTANCE_FIELD(GlobalNamespace::LobbySetupViewController*, _lobbyViewController);
     DECLARE_INSTANCE_FIELD(GlobalNamespace::ILobbyGameStateController*, _gameStateController);
     DECLARE_INSTANCE_FIELD(GlobalNamespace::BeatmapLevelsModel*, _beatmapLevelsModel);
-    DECLARE_INSTANCE_FIELD(GlobalNamespace::MultiplayerSessionManager*, _multiplayerSessionManager);
+    DECLARE_INSTANCE_FIELD(GlobalNamespace::BeatSaberMultiplayerSessionManager*, _multiplayerSessionManager);
     DECLARE_INSTANCE_FIELD(MultiplayerCore::Beatmaps::Providers::MpBeatmapLevelProvider*, _beatmapLevelProvider);
     DECLARE_INSTANCE_FIELD(MultiplayerCore::Objects::MpPlayersDataModel*, _playersDataModel);
     DECLARE_INSTANCE_FIELD(MultiplayerCore::Networking::MpPacketSerializer*, _packetSerializer);
@@ -53,8 +53,8 @@ DECLARE_CLASS_CODEGEN_INTERFACES(MultiplayerCore::UI, MpPerPlayerUI, System::Obj
     DECLARE_INSTANCE_METHOD(void, UpdateDifficultyListWithBeatmapKey, GlobalNamespace::BeatmapKey beatmapKey);
     DECLARE_INSTANCE_METHOD(void, UpdateDifficultyList, ListW<StringW> difficulties);
     DECLARE_INSTANCE_METHOD(void, ClearLocalSelectedBeatmap);
-    DECLARE_INSTANCE_METHOD(void, HandleMpPerPlayerPacket, MultiplayerCore::Players::Packets::MpPerPlayerPacket* packet, GlobalNamespace::IConnectedPlayer* player);
-    DECLARE_INSTANCE_METHOD(void, HandleGetMpPerPlayerPacket, MultiplayerCore::Players::Packets::GetMpPerPlayerPacket* packet, GlobalNamespace::IConnectedPlayer* player);
+    DECLARE_INSTANCE_METHOD(void, HandleMpPerPlayerPacket, MultiplayerCore::Players::Packets::MpPerPlayerPacket* packet, GlobalNamespace::IBeatSaberConnectedPlayer* player);
+    DECLARE_INSTANCE_METHOD(void, HandleGetMpPerPlayerPacket, MultiplayerCore::Players::Packets::GetMpPerPlayerPacket* packet, GlobalNamespace::IBeatSaberConnectedPlayer* player);
     DECLARE_INSTANCE_METHOD(void, UpdateButtonsEnabled);
 
     DECLARE_INSTANCE_METHOD(void, SetSelectedDifficulty, HMUI::SegmentedControl* control, int index);
@@ -66,7 +66,7 @@ DECLARE_CLASS_CODEGEN_INTERFACES(MultiplayerCore::UI, MpPerPlayerUI, System::Obj
     DECLARE_CTOR(ctor,
             GlobalNamespace::GameServerLobbyFlowCoordinator* gameServerLobbyFlowCoordinator,
             GlobalNamespace::BeatmapLevelsModel* beatmapLevelsModel,
-            GlobalNamespace::IMultiplayerSessionManager* sessionManager,
+            GlobalNamespace::IBeatSaberMultiplayerSessionManager* sessionManager,
             MultiplayerCore::Beatmaps::Providers::MpBeatmapLevelProvider* beatmapLevelProvider,
             MultiplayerCore::Objects::MpPlayersDataModel* playersDataModel,
             MultiplayerCore::Networking::MpPacketSerializer* packetSerializer,

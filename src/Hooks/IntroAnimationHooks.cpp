@@ -1,10 +1,11 @@
 #include "hooking.hpp"
+#include "Networking/MultiplayerTypes.hpp"
 #include "logging.hpp"
 
 #include "custom-types/shared/delegate.hpp"
 #include "GlobalNamespace/MultiplayerIntroAnimationController.hpp"
 #include "GlobalNamespace/MultiplayerPlayersManager.hpp"
-#include "GlobalNamespace/IConnectedPlayer.hpp"
+#include "GlobalNamespace/IBeatSaberConnectedPlayer.hpp"
 #include "UnityEngine/Timeline/TimelineAsset.hpp"
 #include "UnityEngine/Timeline/AudioTrack.hpp"
 #include "UnityEngine/Playables/PlayableDirector.hpp"
@@ -27,7 +28,7 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerIntroAnimationController_PlayIntroAnimation, &::
         self->_introPlayableDirector = newPlayableGameObject->AddComponent<UnityEngine::Playables::PlayableDirector*>();
 
         using PlayableDirector_SetPlayableAsset = function_ptr_t<void, UnityEngine::Playables::PlayableDirector*, UnityEngine::ScriptableObject*>;
-        static auto playableDirector_SetPlayableAsset = reinterpret_cast<PlayableDirector_SetPlayableAsset>(il2cpp_functions::resolve_icall("UnityEngine.Playables.PlayableDirector::SetPlayableAsset"));
+        static auto playableDirector_SetPlayableAsset = reinterpret_cast<PlayableDirector_SetPlayableAsset>(i2c::functions::resolve_icall("UnityEngine.Playables.PlayableDirector::SetPlayableAsset"));
         playableDirector_SetPlayableAsset(self->_introPlayableDirector, originalDirector->get_playableAsset());
 
         onCompleted = custom_types::MakeDelegate<System::Action*>(
@@ -43,8 +44,8 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerIntroAnimationController_PlayIntroAnimation, &::
     auto tl = self->_introPlayableDirector->get_playableAsset().cast<UnityEngine::Timeline::TimelineAsset>();
     ArrayW<UnityEngine::Timeline::TrackAsset*> outputTracks(tl->GetOutputTracks());
     for (auto track : outputTracks) {
-        auto audioTrack = il2cpp_utils::try_cast<UnityEngine::Timeline::AudioTrack>(track);
-        track->set_muted(audioTrack.has_value() && iteration != 0);
+        auto audioTrack = i2c::try_cast<UnityEngine::Timeline::AudioTrack*>(track);
+        track->set_muted((audioTrack != nullptr) && iteration != 0);
     }
 
     self->_bindingFinished = false;
@@ -56,10 +57,10 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerIntroAnimationController_PlayIntroAnimation, &::
     iteration++;
     self->_introPlayableDirector = originalDirector;
     auto players = self->_multiplayerPlayersManager->get_allActiveAtGameStartPlayers();
-    auto c = static_cast<System::Collections::Generic::IReadOnlyCollection_1<::GlobalNamespace::IConnectedPlayer*>*>(*players)->get_Count();
+    auto c = static_cast<System::Collections::Generic::IReadOnlyCollection_1<::GlobalNamespace::IBeatSaberConnectedPlayer*>*>(*players)->get_Count();
     int playerCount = 0;
     for (int i = 0; i < c; i++) {
-        if (!players->Item[i]->get_isMe())
+        if (!MultiplayerCore::ConnectedPlayer(players->Item[i])->get_isMe())
             playerCount++;
     }
 
@@ -68,25 +69,25 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerIntroAnimationController_PlayIntroAnimation, &::
     } else iteration = 0;
 }
 
-static ListW<GlobalNamespace::IConnectedPlayer*> GetActivePlayersAttacher(ListW<GlobalNamespace::IConnectedPlayer*> allActiveAtGameStartPlayers) {
+static ListW<GlobalNamespace::IBeatSaberConnectedPlayer*> GetActivePlayersAttacher(ListW<GlobalNamespace::IBeatSaberConnectedPlayer*> allActiveAtGameStartPlayers) {
     // new list
-    auto activePlayers = ListW<GlobalNamespace::IConnectedPlayer*>::New();
+    auto activePlayers = ListW<GlobalNamespace::IBeatSaberConnectedPlayer*>::New();
 
     // filter for players that are not the local player
-    std::vector<GlobalNamespace::IConnectedPlayer*> notMePlayers;
+    std::vector<GlobalNamespace::IBeatSaberConnectedPlayer*> notMePlayers;
     for (auto p : allActiveAtGameStartPlayers)
-        if (!p->get_isMe()) notMePlayers.emplace_back(p);
+        if (!MultiplayerCore::ConnectedPlayer(p)->get_isMe()) notMePlayers.emplace_back(p);
 
     // skip(iteration * 4).take(4)
-    auto start = std::next(notMePlayers.begin(), iteration * 4);
-    auto end = std::next(start, 4);
+    auto start = notMePlayers.begin() + std::min<size_t>(notMePlayers.size(), iteration * 4);
+    auto end = start + std::min<ptrdiff_t>(4, notMePlayers.end() - start);
 
     for (auto itr = start; itr < end && itr < notMePlayers.end(); itr++) {
         activePlayers->Add(*itr);
     }
 
     if (iteration == 0) {
-        auto me = std::find_if(allActiveAtGameStartPlayers.begin(), allActiveAtGameStartPlayers.end(), [](auto p){ return p->get_isMe(); });
+        auto me = std::find_if(allActiveAtGameStartPlayers.begin(), allActiveAtGameStartPlayers.end(), [](auto p){ return MultiplayerCore::ConnectedPlayer(p)->get_isMe(); });
         if (me != allActiveAtGameStartPlayers.end())
             activePlayers->Add(*me);
     }
@@ -103,7 +104,7 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerIntroAnimationController_BindTimeline, &::Global
 
     // save original data for restoring later
     auto originalData = self->_multiplayerPlayersManager->allActiveAtGameStartPlayers;
-    self->_multiplayerPlayersManager->_allActiveAtGameStartPlayers = *static_cast<System::Collections::Generic::List_1<::GlobalNamespace::IConnectedPlayer*>*>(GetActivePlayersAttacher(originalData));
+    self->_multiplayerPlayersManager->_allActiveAtGameStartPlayers = *static_cast<System::Collections::Generic::List_1<::GlobalNamespace::IBeatSaberConnectedPlayer*>*>(GetActivePlayersAttacher(originalData));
 
     // call original
     MultiplayerIntroAnimationController_BindTimeline(self);

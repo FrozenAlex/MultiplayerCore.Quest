@@ -27,7 +27,7 @@ MAKE_AUTO_HOOK_ORIG_MATCH(QuickPlaySetupModel_IsQuickPlaySetupTaskValid_2nd, &::
 }
 
 // possibly does not call orig
-MAKE_AUTO_HOOK_ORIG_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavailableReason_2nd, &::GlobalNamespace::MultiplayerUnavailableReasonMethods::TryGetMultiplayerUnavailableReason, bool, GlobalNamespace::MultiplayerStatusData* data, ByRef<GlobalNamespace::MultiplayerUnavailableReason> reason) {
+MAKE_AUTO_HOOK_ORIG_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavailableReason_2nd, &::GlobalNamespace::MultiplayerUnavailableReasonMethods::TryGetMultiplayerUnavailableReason, bool, GlobalNamespace::MultiplayerStatusData* data, by_ref<GlobalNamespace::MultiplayerUnavailableReason> reason) {
     if (data) return MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavailableReason_2nd(data, reason);
 
     return false;

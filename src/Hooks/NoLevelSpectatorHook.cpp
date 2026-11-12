@@ -14,7 +14,7 @@ using namespace MultiplayerCore;
 #include "GlobalNamespace/LobbyGameStateController.hpp"
 #include "GlobalNamespace/ILevelGameplaySetupData.hpp"
 #include "GlobalNamespace/IBeatmapLevelData.hpp"
-#include "GlobalNamespace/MultiplayerLevelScenesTransitionSetupDataSO.hpp"
+#include "GlobalNamespace/MultiplayerLevelScenesTransitionSetupData.hpp"
 #include "GlobalNamespace/PlayerDataModel.hpp"
 #include "GlobalNamespace/PlayerData.hpp"
 #include "GlobalNamespace/MenuTransitionsHelper.hpp"
@@ -33,7 +33,7 @@ static Beatmaps::Providers::MpBeatmapLevelProvider* _mpLevelProvider = nullptr;
 
 MAKE_AUTO_HOOK_ORIG_MATCH(LobbyGameStateController_StartMultiplayerLevel, &::GlobalNamespace::LobbyGameStateController::StartMultiplayerLevel, void, GlobalNamespace::LobbyGameStateController* self, GlobalNamespace::ILevelGameplaySetupData* gameplaySetupData, GlobalNamespace::IBeatmapLevelData* beatmapLevelData, System::Action* beforeSceneSwitchCallback) {
     INFO("LobbyGameStateController_StartMultiplayerLevel");
-    _mpPlayersDataModel = il2cpp_utils::try_cast<Objects::MpPlayersDataModel>(self->_lobbyPlayersDataModel).value_or(nullptr);
+    _mpPlayersDataModel = i2c::try_cast<Objects::MpPlayersDataModel*>(self->_lobbyPlayersDataModel);
     _mpLevelProvider = _mpPlayersDataModel ? _mpPlayersDataModel->_beatmapLevelProvider : _mpLevelProvider;
     static GlobalNamespace::BeatmapKey key;
     key = gameplaySetupData ? gameplaySetupData->beatmapKey : GlobalNamespace::BeatmapKey();
@@ -63,18 +63,18 @@ MAKE_AUTO_HOOK_ORIG_MATCH(LobbyGameStateController_StartMultiplayerLevel, &::Glo
             // GlobalNamespace::BeatmapLevel* beatmapLevel = Beatmaps::NoInfoBeatmapLevel::New_ctor(hash);
             _mpLevelProvider->AddBasicBeatmapDataToLevel(beatmapLevel, key);
 
-            static ConstString gameModeText = "Multiplayer";
-            self->_menuTransitionsHelper->StartMultiplayerLevel(gameModeText, byref(key), beatmapLevel, beatmapLevelData, 
-                self->_playerDataModel->playerData->colorSchemesSettings->GetOverrideColorScheme(), gameplaySetupData->gameplayModifiers, 
-                self->_playerDataModel->playerData->playerSpecificSettings, nullptr, BGLib::Polyglot::Localization::Get("BUTTON_MENU"), 
-                false, 
+            auto gameModeText = GlobalNamespace::GameMode::Multiplayer;
+            self->_menuTransitionsHelper->StartMultiplayerLevel(gameModeText, by_ref(key), beatmapLevel, beatmapLevelData,
+                self->_playerDataModel->playerData->colorSchemesSettings->GetOverrideColorScheme(), gameplaySetupData->gameplayModifiers,
+                self->_playerDataModel->playerData->playerSpecificSettings, nullptr, nullptr, BGLib::Polyglot::Localization::Get("BUTTON_MENU"),
+                false,
                 beforeSceneSwitchCallback,
-                custom_types::MakeDelegate<System::Action_2<::UnityW<GlobalNamespace::MultiplayerLevelScenesTransitionSetupDataSO>, GlobalNamespace::MultiplayerResultsData*>*>(
-                    self, 
-                    (std::function<void(GlobalNamespace::LobbyGameStateController*, GlobalNamespace::MultiplayerLevelScenesTransitionSetupDataSO*, GlobalNamespace::MultiplayerResultsData*)>)&GlobalNamespace::LobbyGameStateController::HandleMultiplayerLevelDidFinish
+                custom_types::MakeDelegate<System::Action_2<GlobalNamespace::MultiplayerLevelScenesTransitionSetupData*, GlobalNamespace::MultiplayerResultsData*>*>(
+                    self,
+                    (std::function<void(GlobalNamespace::LobbyGameStateController*, GlobalNamespace::MultiplayerLevelScenesTransitionSetupData*, GlobalNamespace::MultiplayerResultsData*)>)&GlobalNamespace::LobbyGameStateController::HandleMultiplayerLevelDidFinish
                 ),
                 custom_types::MakeDelegate<System::Action_1<GlobalNamespace::DisconnectedReason>*>(
-                    self, 
+                    self,
                     (std::function<void(GlobalNamespace::LobbyGameStateController*, GlobalNamespace::DisconnectedReason)>)&GlobalNamespace::LobbyGameStateController::HandleMultiplayerLevelDidDisconnect
                 )
             );
@@ -106,7 +106,7 @@ MAKE_HOOK_MATCH(MultiplayerResultsViewController_Init, &::GlobalNamespace::Multi
             if (!beatmapLevel) {
                 beatmapLevel = Beatmaps::NoInfoBeatmapLevel::New_ctor(hash);
             }
-            self->_levelBar->Setup(beatmapLevel, beatmapKey.difficulty, beatmapKey.beatmapCharacteristic);
+            self->_levelBar->Setup(beatmapLevel, beatmapKey.difficulty, beatmapKey.characteristic);
             self->_levelBar->hide = false;
         });
     }

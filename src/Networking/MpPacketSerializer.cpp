@@ -1,3 +1,4 @@
+#include "Networking/MultiplayerTypes.hpp"
 #include "Networking/MpPacketSerializer.hpp"
 #include "logging.hpp"
 
@@ -5,18 +6,20 @@
 DEFINE_TYPE(MultiplayerCore::Networking, MpPacketSerializer);
 
 namespace MultiplayerCore::Networking {
-    void MpPacketSerializer::ctor(GlobalNamespace::IMultiplayerSessionManager* sessionManager) {
+    MpPacketSerializer::ProcessedHandler* MpPacketSerializer::get_PacketProcessedHandler() { return _packetProcessedHandler; }
+    void MpPacketSerializer::set_PacketProcessedHandler(ProcessedHandler* value) { _packetProcessedHandler = value; }
+    void MpPacketSerializer::ctor(GlobalNamespace::IBeatSaberMultiplayerSessionManager* sessionManager) {
         INVOKE_CTOR();
-        _sessionManager = il2cpp_utils::try_cast<GlobalNamespace::MultiplayerSessionManager>(sessionManager).value_or(nullptr);
+        _sessionManager = i2c::try_cast<GlobalNamespace::BeatSaberMultiplayerSessionManager*>(sessionManager);
     }
 
     void MpPacketSerializer::Initialize() {
-        _sessionManager->RegisterSerializer(GlobalNamespace::MultiplayerSessionManager::MessageType(ID), this->i_INetworkPacketSubSerializer_1_IConnectedPlayer());
+        _sessionManager->RegisterSerializer(GlobalNamespace::NetworkMessageType(ID), this->i_INetworkPacketSubSerializer_1_IConnectedPlayer());
     }
 
     void MpPacketSerializer::Dispose() {
         try {
-            _sessionManager->UnregisterSerializer(GlobalNamespace::MultiplayerSessionManager::MessageType(ID), this->i_INetworkPacketSubSerializer_1_IConnectedPlayer());
+            _sessionManager->UnregisterSerializer(GlobalNamespace::NetworkMessageType(ID), this->i_INetworkPacketSubSerializer_1_IConnectedPlayer());
         }
         catch (const std::exception& e) {
             ERROR("Failed to unregister serializer: {}", e.what());
@@ -29,7 +32,7 @@ namespace MultiplayerCore::Networking {
         packet->Serialize(writer);
     }
 
-    void MpPacketSerializer::Deserialize(LiteNetLib::Utils::NetDataReader* reader, int length, GlobalNamespace::IConnectedPlayer* data) {
+    void MpPacketSerializer::Deserialize(LiteNetLib::Utils::NetDataReader* reader, int length, GlobalNamespace::IBeatSaberConnectedPlayer* data) {
         std::string packetId = "null";
         auto prevPosition = reader->get_Position();
         try {
@@ -40,16 +43,17 @@ namespace MultiplayerCore::Networking {
             auto handlerItr = packetHandlers.find(packetId);
             if (handlerItr != packetHandlers.end() && handlerItr->second) {
                 handlerItr->second(reader, length, data);
+                if (_packetProcessedHandler) _packetProcessedHandler->HandlePacketProcessed(packetId, data);
             }
         }
         catch (const std::exception& e) {
             std::string user;
 			if (data) {
-				if (data->get_userName())
-					user += static_cast<std::string>(data->get_userName());
-				if (!user.empty() && data->get_userId()) user += "|";
-				if (data->get_userId())
-					user += static_cast<std::string>(data->get_userId());
+				if (MultiplayerCore::ConnectedPlayer(data)->get_userName())
+					user += static_cast<std::string>(MultiplayerCore::ConnectedPlayer(data)->get_userName());
+				if (!user.empty() && MultiplayerCore::ConnectedPlayer(data)->get_userId()) user += "|";
+				if (MultiplayerCore::ConnectedPlayer(data)->get_userId())
+					user += static_cast<std::string>(MultiplayerCore::ConnectedPlayer(data)->get_userId());
 			}
             WARNING("An exception was thrown processing packet from player {}, packet {}: {}", user, packetId, e.what());
         }
@@ -57,11 +61,11 @@ namespace MultiplayerCore::Networking {
         reader->SkipBytes(length - processedBytes);
     }
 
-    bool MpPacketSerializer::HandlesType(Il2CppReflectionType* type) {
+    bool MpPacketSerializer::HandlesType(System::Type* type) {
         return std::find(registeredTypes.begin(), registeredTypes.end(), type) != registeredTypes.end();
     }
 
-    GlobalNamespace::IConnectedPlayer* MpPacketSerializer::get_connectionOwner() {
+    GlobalNamespace::IBeatSaberConnectedPlayer* MpPacketSerializer::get_connectionOwner() {
         return _sessionManager->get_connectionOwner();
     }
 }

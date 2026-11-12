@@ -1,5 +1,6 @@
 #pragma once
 
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "System/Threading/Tasks/Task.hpp"
 #include "System/Threading/Tasks/Task_1.hpp"
@@ -25,5 +26,5 @@ public:
 
     GlobalNamespace::BeatmapLevel* TryGetBeatmapFromPacketHash(std::string levelHash);
 
-    GlobalNamespace::BeatmapLevel* AddBasicBeatmapDataToLevel(GlobalNamespace::BeatmapLevel* level, GlobalNamespace::BeatmapKey& beatmapKey, Packets::MpBeatmapPacket* packet = nullptr);
+    GlobalNamespace::BeatmapLevel* AddBasicBeatmapDataToLevel(GlobalNamespace::BeatmapLevel* level, const GlobalNamespace::BeatmapKey& beatmapKey, Packets::MpBeatmapPacket* packet = nullptr);
 };

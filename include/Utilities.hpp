@@ -3,7 +3,7 @@
 #include <future>
 #include <string>
 #include "paper2_scotland2/shared/utfcpp/source/utf8.h"
-#include "beatsaber-hook/shared/utils/typedefs-string.hpp"
+#include "beatsaber-hook/shared/stringw.hpp"
 
 namespace MultiplayerCore {
     static std::string HashFromLevelID(StringW levelId) {

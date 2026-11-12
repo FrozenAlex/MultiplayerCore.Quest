@@ -1,3 +1,4 @@
+#include "Networking/MultiplayerTypes.hpp"
 #include "Objects/MpEntitlementChecker.hpp"
 #include "Utils/ExtraSongData.hpp"
 #include "Utils/EnumUtils.hpp"
@@ -11,7 +12,7 @@
 #include "songcore/shared/SongLoader/RuntimeSongLoader.hpp"
 
 #include "GlobalNamespace/IMenuRpcManager.hpp"
-#include "GlobalNamespace/IConnectedPlayer.hpp"
+#include "GlobalNamespace/IBeatSaberConnectedPlayer.hpp"
 
 DEFINE_TYPE(MultiplayerCore::Objects, MpEntitlementChecker);
 
@@ -23,21 +24,24 @@ namespace RequirementUtils {
 namespace MultiplayerCore::Objects {
     void MpEntitlementChecker::ctor() {
         INVOKE_CTOR();
-        INVOKE_BASE_CTOR(classof(GlobalNamespace::NetworkPlayerEntitlementChecker*));
+        INVOKE_BASE_CTOR(i2c::class_of<GlobalNamespace::NetworkPlayerEntitlementChecker*>());
     }
 
-    void MpEntitlementChecker::Inject(GlobalNamespace::IMultiplayerSessionManager* sessionManager) {
-        _sessionManager = sessionManager;
+    void MpEntitlementChecker::Inject(GlobalNamespace::IBeatSaberMultiplayerSessionManager* sessionManager) {
+        _sessionManager = MultiplayerCore::Session(sessionManager);
     }
 
     void MpEntitlementChecker::Start_override() {
         GlobalNamespace::NetworkPlayerEntitlementChecker::Start();
-        _rpcManager->add_setIsEntitledToLevelEvent(
-            BSML::MakeSystemAction<StringW, StringW, GlobalNamespace::EntitlementsStatus>(this, ___HandleSetIsEntitledToLevel_MethodRegistrator.get())
-        );
+        _entitlementDelegate = BSML::MakeSystemAction<StringW, StringW, GlobalNamespace::EntitlementsStatus>(this, ___HandleSetIsEntitledToLevel_MethodRegistrator.get());
+        _rpcManager->add_setIsEntitledToLevelEvent(_entitlementDelegate);
     }
 
     void MpEntitlementChecker::OnDestroy_override() {
+        _destroyed = true;
+        if (_entitlementDelegate) _rpcManager->remove_setIsEntitledToLevelEvent(_entitlementDelegate);
+        _entitlementDelegate = nullptr;
+        _entitlementsTasks.clear();
         GlobalNamespace::NetworkPlayerEntitlementChecker::OnDestroy();
     }
 
@@ -64,10 +68,12 @@ namespace MultiplayerCore::Objects {
         // operator[] auto inserts instances so we can just check like this,
         // and since this method shouldn't ever be called with Unknown, this is a nice way of doing this
 
-        if (_entitlementsDictionary[userId][levelId] != entitlement || entitlement == GlobalNamespace::EntitlementsStatus::Unknown)
-            DEBUG("Entitlement from '{}' for '{}' is {}", userId, levelId, EntitlementName(entitlement));
-
-        _entitlementsDictionary[userId][levelId] = entitlement;
+        {
+            std::lock_guard lock(_entitlementsMutex);
+            if (_entitlementsDictionary[userId][levelId] != entitlement || entitlement == GlobalNamespace::EntitlementsStatus::Unknown)
+                DEBUG("Entitlement from '{}' for '{}' is {}", userId, levelId, EntitlementName(entitlement));
+            _entitlementsDictionary[userId][levelId] = entitlement;
+        }
 
         receivedEntitlementEvent.invoke(userId, levelId, entitlement);
     }
@@ -81,25 +87,33 @@ namespace MultiplayerCore::Objects {
         // therefore we get the base task before we enter our own new task which will await things, and is the one that we will return
         auto baseTask = NetworkPlayerEntitlementChecker::GetEntitlementStatus(levelId);
 
-        auto task = StartTask<GlobalNamespace::EntitlementsStatus>([this, baseTask, levelId](){
+        safe_ptr<MpEntitlementChecker*> owner(this);
+        safe_ptr<EntitlementsStatusTask*> rootedBaseTask(baseTask);
+        const std::string localUserId(MultiplayerCore::ConnectedPlayer(_sessionManager->localPlayer)->get_userId());
+        auto task = StartTask<GlobalNamespace::EntitlementsStatus>([owner, rootedBaseTask, localUserId, levelId = std::string(levelId)](){
+            auto self = owner.ptr();
+            auto baseTask = rootedBaseTask.ptr();
             using namespace std::chrono_literals;
 
-            std::string levelHash(HashFromLevelID(levelId));
+            std::string levelHash(HashFromLevelID(std::string_view(levelId)));
             GlobalNamespace::EntitlementsStatus entitlement = GlobalNamespace::EntitlementsStatus::Unknown;
             if (levelHash.empty()) { // not custom level
                 while (!baseTask->IsCompleted) std::this_thread::sleep_for(10ms);
 
-                if (baseTask->IsFaulted) {
+                if (baseTask->IsFaulted || baseTask->IsCanceled) {
                     entitlement = GlobalNamespace::EntitlementsStatus::NotOwned;
                 } else {
                     entitlement = baseTask->Result;
                 }
             } else { // custom level
-                entitlement = GetEntitlementStatus(levelHash);
+                entitlement = self->GetEntitlementStatus(levelHash);
             }
 
             DEBUG("Entitlement found for level {}: {}", levelId, EntitlementName(entitlement));
-            _entitlementsDictionary[_sessionManager->localPlayer->userId][levelId] = entitlement;
+            if (!self->_destroyed) {
+                std::lock_guard lock(self->_entitlementsMutex);
+                self->_entitlementsDictionary[localUserId][levelId] = entitlement;
+            }
             return entitlement;
         });
 
@@ -179,6 +193,7 @@ namespace MultiplayerCore::Objects {
     }
 
     GlobalNamespace::EntitlementsStatus MpEntitlementChecker::GetKnownEntitlement(StringW userId, StringW levelId) {
+        std::lock_guard lock(_entitlementsMutex);
         auto userDict = _entitlementsDictionary.find(userId);
         if (userDict != _entitlementsDictionary.end()) {
             auto currentEntitlement = userDict->second.find(levelId);

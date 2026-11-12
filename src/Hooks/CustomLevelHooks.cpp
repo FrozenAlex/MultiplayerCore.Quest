@@ -1,4 +1,5 @@
 #include "logging.hpp"
+#include "System/String.hpp"
 #include "hooking.hpp"
 #include "Hooks/NetworkConfigHooks.hpp"
 
@@ -48,7 +49,7 @@ MAKE_AUTO_HOOK_MATCH(
     GlobalNamespace::LevelSelectionNavigationController* self,
     GlobalNamespace::SongPackMask songPackMask,
     GlobalNamespace::BeatmapDifficultyMask allowedBeatmapDifficultyMask,
-    ArrayW<GlobalNamespace::BeatmapCharacteristicSO*> notAllowedCharacteristics,
+    ArrayW<GlobalNamespace::BeatmapCharacteristic> notAllowedCharacteristics,
     bool hidePacksIfOneOrNone,
     bool hidePracticeButton,
     StringW actionButtonText,

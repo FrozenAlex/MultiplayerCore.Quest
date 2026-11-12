@@ -1,5 +1,6 @@
 #pragma once
 
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "custom-types/shared/coroutine.hpp"
 #include "lapiz/shared/macros.hpp"

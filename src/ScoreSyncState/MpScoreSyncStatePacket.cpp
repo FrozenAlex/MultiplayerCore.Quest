@@ -5,7 +5,7 @@ DEFINE_TYPE(MultiplayerCore::ScoreSyncState, MpScoreSyncStatePacket);
 
 namespace MultiplayerCore::ScoreSyncState {
     void MpScoreSyncStatePacket::ctor() {
-        INVOKE_BASE_CTOR(classof(MultiplayerCore::Networking::Abstractions::MpPacket*));
+        INVOKE_BASE_CTOR(i2c::class_of<MultiplayerCore::Networking::Abstractions::MpPacket*>());
     }
 
     void MpScoreSyncStatePacket::Serialize(LiteNetLib::Utils::NetDataWriter* writer) {

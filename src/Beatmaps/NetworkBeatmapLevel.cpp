@@ -13,7 +13,7 @@ DEFINE_TYPE(MultiplayerCore::Beatmaps, NetworkBeatmapLevel);
 namespace MultiplayerCore::Beatmaps {
     void NetworkBeatmapLevel::ctor_1(Packets::MpBeatmapPacket* packet) {
         INVOKE_CTOR();
-        INVOKE_BASE_CTOR(classof(Abstractions::MpBeatmapLevel*));
+        INVOKE_BASE_CTOR(i2c::class_of<Abstractions::MpBeatmapLevel*>());
 
         _ctor(
             -1,
@@ -23,7 +23,7 @@ namespace MultiplayerCore::Beatmaps {
             packet->songSubName,
             packet->songAuthorName,
             ArrayW<StringW>({ StringW(packet->levelAuthorName) }),
-            ArrayW<StringW>::Empty(),
+            ArrayW<StringW>::New(),
             packet->beatsPerMinute,
             -6.0f,
             0,

@@ -1,3 +1,4 @@
+#include "beatsaber-hook/shared/callback.hpp"
 #include "MultiplayerCore.hpp"
 #include "Hooks/NetworkConfigHooks.hpp"
 #include "Repositories/MpStatusRepository.hpp"
@@ -23,7 +24,7 @@ namespace MultiplayerCore {
         return Hooks::NetworkConfigHooks::GetCurrentServer();
     }
 
-    UnorderedEventCallback<const ServerConfig*>& API::GetServerChangedEvent() {
+    unordered_event_callback<const ServerConfig*>& API::GetServerChangedEvent() {
         return Hooks::NetworkConfigHooks::ServerChanged;
     }
 
@@ -35,7 +36,7 @@ namespace MultiplayerCore {
         return Repositories::MpStatusRepository::get_Instance()->GetLastStatusData();
     }
 
-    UnorderedEventCallback<std::string, const MultiplayerCore::Models::MpStatusData*>& API::GetStatusUpdatedForUrlEvent() {
+    unordered_event_callback<std::string, const MultiplayerCore::Models::MpStatusData*>& API::GetStatusUpdatedForUrlEvent() {
         return Repositories::MpStatusRepository::get_Instance()->statusUpdatedForUrlEvent;
     }
 }

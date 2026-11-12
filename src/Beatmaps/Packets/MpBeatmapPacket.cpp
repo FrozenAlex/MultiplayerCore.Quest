@@ -1,3 +1,4 @@
+#include "GlobalNamespace/BeatmapCharacteristicExtensions.hpp"
 #include "Beatmaps/Packets/MpBeatmapPacket.hpp"
 #include "Beatmaps/Abstractions/MpBeatmapLevel.hpp"
 
@@ -11,7 +12,7 @@ DEFINE_TYPE(MultiplayerCore::Beatmaps::Packets, MpBeatmapPacket);
 namespace MultiplayerCore::Beatmaps::Packets {
     void MpBeatmapPacket::New() {
         INVOKE_CTOR();
-        INVOKE_BASE_CTOR(classof(MultiplayerCore::Networking::Abstractions::MpPacket*));
+        INVOKE_BASE_CTOR(i2c::class_of<MultiplayerCore::Networking::Abstractions::MpPacket*>());
     }
 
     MpBeatmapPacket* MpBeatmapPacket::New_1(GlobalNamespace::BeatmapLevel* beatmapLevel, GlobalNamespace::BeatmapKey beatmapKey) {
@@ -21,14 +22,14 @@ namespace MultiplayerCore::Beatmaps::Packets {
         packet->songName = beatmapLevel->songName;
         packet->songSubName = beatmapLevel->songSubName;
         packet->songAuthorName = beatmapLevel->songAuthorName;
-        packet->levelAuthorName = beatmapLevel->allMappers ? beatmapLevel->allMappers.front().value_or("") : "";
+        packet->levelAuthorName = beatmapLevel->allMappers && !beatmapLevel->allMappers.empty() ? beatmapLevel->allMappers.front() : StringW("");
         packet->beatsPerMinute = beatmapLevel->beatsPerMinute;
         packet->songDuration = beatmapLevel->songDuration;
 
-        packet->characteristic = beatmapKey.beatmapCharacteristic->serializedName;
+        packet->characteristic = std::string(::GlobalNamespace::BeatmapCharacteristicExtensions::SerializedName(beatmapKey.characteristic));
         packet->difficulty = beatmapKey.difficulty;
 
-        auto mpBeatmapLevel = il2cpp_utils::try_cast<Abstractions::MpBeatmapLevel>(beatmapLevel).value_or(nullptr);
+        auto mpBeatmapLevel = i2c::try_cast<Abstractions::MpBeatmapLevel*>(beatmapLevel);
         if (mpBeatmapLevel) {
             auto req = mpBeatmapLevel->requirements.find(packet->characteristic);
             if (req != mpBeatmapLevel->requirements.end()) packet->requirements = req->second;

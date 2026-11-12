@@ -175,18 +175,18 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerModeSelectionFlowCoordinator_PresentConnectionEr
 
     // Diagnosing connection errors
     // Attempt dns resolve
-    if (!self->_multiplayerModeSelectionViewController->_networkConfig || ! self->_multiplayerModeSelectionViewController->_networkConfig->graphUrl)
+    if (!self->_multiplayerModeSelectionViewController->_networkConfig || ! self->_multiplayerModeSelectionViewController->_networkConfig->graphApiBaseUrl)
     {
         ERROR("Missing GraphUrl can't diagnose");
         return;
     }
     System::Uri* url;
     try {
-        url = System::Uri::New_ctor(self->_multiplayerModeSelectionViewController->_networkConfig->graphUrl);
+        url = System::Uri::New_ctor(self->_multiplayerModeSelectionViewController->_networkConfig->graphApiBaseUrl);
     }
     catch (const std::exception& e)
     {
-        ERROR("Failed to parse graphUrl from config graphUrl: {}", self->_multiplayerModeSelectionViewController->_networkConfig->graphUrl);
+        ERROR("Failed to parse graphUrl from config graphUrl: {}", self->_multiplayerModeSelectionViewController->_networkConfig->graphApiBaseUrl);
         return;
     }
     if (!url)
@@ -257,8 +257,8 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerModeSelectionFlowCoordinator_PresentConnectionEr
     // }
 
     // Test http(s) connection to endpoint;
-    INFO("Starting HTTP(S) diagnostics, request to {}", self->_multiplayerModeSelectionViewController->_networkConfig->graphUrl);
-    WebUtils::URLOptions urlOptions = WebUtils::URLOptions(static_cast<std::string>(self->_multiplayerModeSelectionViewController->_networkConfig->graphUrl));
+    INFO("Starting HTTP(S) diagnostics, request to {}", self->_multiplayerModeSelectionViewController->_networkConfig->graphApiBaseUrl);
+    WebUtils::URLOptions urlOptions = WebUtils::URLOptions(static_cast<std::string>(self->_multiplayerModeSelectionViewController->_networkConfig->graphApiBaseUrl));
     urlOptions.noEscape = true;
     WebUtils::GetAsync<WebUtils::StringResponse>(urlOptions, [](WebUtils::StringResponse response) {
         if (response.get_HttpCode() == 404 || response.IsSuccessful()) {

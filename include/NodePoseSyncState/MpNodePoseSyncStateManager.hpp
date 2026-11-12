@@ -1,5 +1,6 @@
 #pragma once
 
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "lapiz/shared/macros.hpp"
 
@@ -25,5 +26,5 @@ DECLARE_CLASS_CODEGEN_INTERFACES(MultiplayerCore::NodePoseSyncState, MpNodePoseS
     DECLARE_CTOR(ctor);
 
     public:
-        void HandleNodePoseSyncUpdateReceived(MpNodePoseSyncStatePacket* data, GlobalNamespace::IConnectedPlayer* player);
+        void HandleNodePoseSyncUpdateReceived(MpNodePoseSyncStatePacket* data, GlobalNamespace::IBeatSaberConnectedPlayer* player);
 };

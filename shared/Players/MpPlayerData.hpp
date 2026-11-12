@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../_config.h"
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "Zenject/IInitializable.hpp"
 #include "System/IDisposable.hpp"
@@ -21,9 +22,9 @@ namespace MultiplayerCore::Players {
 
 // categorize the enum as an int for C# calls
 template<>
-struct ::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<MultiplayerCore::Players::Platform> {
+struct ::i2c::type_check::no_arg_class<MultiplayerCore::Players::Platform> {
     static inline Il2CppClass* get() {
-        return classof(int);
+        return i2c::class_of<int>();
     }
 };
 static_assert(sizeof(MultiplayerCore::Players::Platform) == sizeof(int));

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "DifficultyColors.hpp"
 #include "../../Utils/ExtraSongData.hpp"
@@ -19,7 +20,7 @@ DECLARE_CLASS_CODEGEN(MultiplayerCore::Beatmaps::Abstractions, MpBeatmapLevel, G
     public:
         std::unordered_map<std::string, std::unordered_map<uint32_t, std::list<std::string>>> requirements;
         std::unordered_map<std::string, std::unordered_map<uint32_t, DifficultyColors>> difficultyColors;
-        std::vector<const MultiplayerCore::Utils::ExtraSongData::Contributor> contributors;
+        std::vector<MultiplayerCore::Utils::ExtraSongData::Contributor> contributors;
     protected:
         std::string _levelHash;
         void set_levelHash(std::string_view levelHash) { _levelHash = levelHash; }

@@ -13,7 +13,7 @@ MAKE_AUTO_HOOK_ORIG_MATCH(MultiplayerLevelLoader_LoadLevel, &GlobalNamespace::Mu
     if (!lock) {
         MultiplayerLevelLoader_LoadLevel(self, gameplaySetupData, initialStartTime);
     } else {
-        static auto customKlass = classof(MpLevelLoader*);
+        static auto customKlass = i2c::class_of<MpLevelLoader*>();
         if (self->klass == customKlass)
             reinterpret_cast<MpLevelLoader*>(self)->LoadLevel_override(gameplaySetupData, initialStartTime);
         else
@@ -26,7 +26,7 @@ MAKE_AUTO_HOOK_ORIG_MATCH(MultiplayerLevelLoader_Tick, &GlobalNamespace::Multipl
     if (!lock) {
         MultiplayerLevelLoader_Tick(self);
     } else {
-        static auto customKlass = classof(MpLevelLoader*);
+        static auto customKlass = i2c::class_of<MpLevelLoader*>();
         if (self->klass == customKlass)
             reinterpret_cast<MpLevelLoader*>(self)->Tick_override();
         else

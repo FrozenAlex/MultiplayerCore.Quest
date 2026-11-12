@@ -1,5 +1,6 @@
 #pragma once
 
+#include "beatsaber-hook/shared/callback.hpp"
 #include "./_config.h"
 #include "ServerConfig.hpp"
 #include "Models/MpStatusData.hpp"
@@ -31,7 +32,7 @@ namespace MultiplayerCore {
 
         /// @brief Event called when the server is changed
         /// @return BS-hook callback instance reference to add your event handler to
-        static UnorderedEventCallback<const ServerConfig*>& GetServerChangedEvent();
+        static unordered_event_callback<const ServerConfig*>& GetServerChangedEvent();
 
         /// @brief Check whether we are overriding the api
         /// @return true for overriding, false for not
@@ -43,6 +44,6 @@ namespace MultiplayerCore {
 
         /// @brief Event called when the status is updated for a given url
         /// @return BS-hook callback instance reference to add your event handler to
-        static UnorderedEventCallback<std::string, const MultiplayerCore::Models::MpStatusData*>& GetStatusUpdatedForUrlEvent();
+        static unordered_event_callback<std::string, const MultiplayerCore::Models::MpStatusData*>& GetStatusUpdatedForUrlEvent();
     };
 }

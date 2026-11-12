@@ -5,7 +5,7 @@ DEFINE_TYPE(MultiplayerCore::NodePoseSyncState, MpNodePoseSyncStatePacket);
 
 namespace MultiplayerCore::NodePoseSyncState {
     void MpNodePoseSyncStatePacket::ctor() {
-        INVOKE_BASE_CTOR(classof(MultiplayerCore::Networking::Abstractions::MpPacket*));
+        INVOKE_BASE_CTOR(i2c::class_of<MultiplayerCore::Networking::Abstractions::MpPacket*>());
     }
 
     void MpNodePoseSyncStatePacket::Serialize(LiteNetLib::Utils::NetDataWriter* writer) {

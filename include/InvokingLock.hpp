@@ -22,4 +22,4 @@ struct InvokingLock {
 };
 
 // we use the hook name to ensure each hook gets its own static list in InvokingLock<U, T>
-#define INVOKE_LOCK(name_) InvokingLock<Hook_##name_, decltype(self)> lock(self)
+#define INVOKE_LOCK(name_) InvokingLock<hook_##name_, decltype(self)> lock(self)

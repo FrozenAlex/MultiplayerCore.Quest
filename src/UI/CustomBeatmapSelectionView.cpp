@@ -6,6 +6,7 @@
 #include "UnityEngine/GameObject.hpp"
 #include "Utilities.hpp"
 #include "logging.hpp"
+#include "GlobalNamespace/BeatmapCharacteristicExtensions.hpp"
 
 DEFINE_TYPE(MultiplayerCore::UI, CustomBeatmapSelectionView);
 
@@ -16,21 +17,22 @@ namespace MultiplayerCore::UI {
         _mpBeatmapLevelProvider = mpBeatmapLevelProvider;
     }
 
-    void CustomBeatmapSelectionView::SetBeatmap(ByRef<GlobalNamespace::BeatmapKey> beatmapKey) {
-        static auto method = il2cpp_utils::il2cpp_type_check::MetadataGetter<&GlobalNamespace::BeatmapSelectionView::SetBeatmap>::methodInfo();
-        static auto base = [](GlobalNamespace::BeatmapSelectionView* self, ByRef<GlobalNamespace::BeatmapKey> beatmapKey){ return il2cpp_utils::RunMethodRethrow<void, false>(self, method, beatmapKey); };
-        if (!beatmapKey->IsValid()) {
-            WARNING("beatmapkey was invalid, {} {} {}", beatmapKey->levelId, (int)beatmapKey->difficulty, beatmapKey->beatmapCharacteristic ? beatmapKey->beatmapCharacteristic->get_serializedName() : "null");
-            return base(this, beatmapKey);
+    void CustomBeatmapSelectionView::SetBeatmap(by_ref<const GlobalNamespace::BeatmapKey> beatmapKey) {
+        // The generated virtual wrapper dispatches back to this override, even
+        // with C++ base qualification. Invoke the base MethodInfo explicitly.
+        static auto method = i2c::metadata_getter<&GlobalNamespace::BeatmapSelectionView::SetBeatmap>::method_info();
+        if (!GlobalNamespace::BeatmapKey(*beatmapKey).IsValid()) {
+            WARNING("beatmapkey was invalid, {} {} {}", beatmapKey->levelId, (int)beatmapKey->difficulty, GlobalNamespace::BeatmapCharacteristicExtensions::SerializedName(beatmapKey->characteristic));
+            return cordl_internals::RunMethodRethrow<void>(this, method, beatmapKey);
         }
 
         auto levelHash = HashFromLevelID(beatmapKey->levelId);
         if (levelHash.empty()) { // level wasn't custom
             DEBUG("Level {} wasn't custom", beatmapKey->levelId);
-            return base(this, beatmapKey);
+            return cordl_internals::RunMethodRethrow<void>(this, method, beatmapKey);
         }
 
-        StartCoroutine(custom_types::Helpers::CoroutineHelper::New(SetBeatmapCoroutine(beatmapKey.heldRef, levelHash)));
+        StartCoroutine(custom_types::Helpers::CoroutineHelper::New(SetBeatmapCoroutine((*beatmapKey), levelHash)));
     }
 
     custom_types::Helpers::Coroutine CustomBeatmapSelectionView::SetBeatmapCoroutine(GlobalNamespace::BeatmapKey beatmapKey, std::string levelHash) {
@@ -58,7 +60,7 @@ namespace MultiplayerCore::UI {
 
         level = _mpBeatmapLevelProvider->AddBasicBeatmapDataToLevel(level, beatmapKey, packet);
 
-        _levelBar->Setup(level, beatmapKey.difficulty, beatmapKey.beatmapCharacteristic);
+        _levelBar->Setup(level, beatmapKey.difficulty, beatmapKey.characteristic);
         co_return;
     }
 }

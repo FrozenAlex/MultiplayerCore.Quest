@@ -29,17 +29,17 @@ static CModResult* find_mod(std::string_view id) {
     return nullptr;
 };
 
-MAKE_AUTO_HOOK_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavailableReason, &::GlobalNamespace::MultiplayerUnavailableReasonMethods::TryGetMultiplayerUnavailableReason, bool, GlobalNamespace::MultiplayerStatusData *data, ByRef<GlobalNamespace::MultiplayerUnavailableReason> reason) {
-    reason.heldRef = GlobalNamespace::MultiplayerUnavailableReason(0);
-    auto mpData = il2cpp_utils::try_cast<MultiplayerCore::Models::MpStatusData>(data).value_or(nullptr);
+MAKE_AUTO_HOOK_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavailableReason, &::GlobalNamespace::MultiplayerUnavailableReasonMethods::TryGetMultiplayerUnavailableReason, bool, GlobalNamespace::MultiplayerStatusData *data, by_ref<GlobalNamespace::MultiplayerUnavailableReason> reason) {
+    (*reason) = GlobalNamespace::MultiplayerUnavailableReason(0);
+    auto mpData = i2c::try_cast<MultiplayerCore::Models::MpStatusData*>(data);
     if (!mpData)
     {
         if (!data) {
             DEBUG("MultiplayerStatusData is null returning MUR-1 NetworkUnreachable");
-            reason.heldRef = GlobalNamespace::MultiplayerUnavailableReason::NetworkUnreachable;
+            (*reason) = GlobalNamespace::MultiplayerUnavailableReason::NetworkUnreachable;
             return true;
         };
-        DEBUG("MultiplayerStatusData is not of type MpStatusData current code MUR-{}", reason.heldRef.value__);
+        DEBUG("MultiplayerStatusData is not of type MpStatusData current code MUR-{}", (*reason).value__);
         return MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavailableReason(data, reason);
     }
 
@@ -60,7 +60,7 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavai
             auto& installedVersion = installedModInfo.version;
             if (semver::lte(requiredVersion, installedVersion)) continue;
 
-            reason.heldRef = GlobalNamespace::MultiplayerUnavailableReason(5);
+            (*reason) = GlobalNamespace::MultiplayerUnavailableReason(5);
             ::requiredMod = installedModInfo.id;
             ::requiredVersion = req.version;
 
@@ -71,7 +71,7 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerUnavailableReasonMethods_TryGetMultiplayerUnavai
     if (mpData->maximumAppVersion) {
         auto gameVersion = UnityEngine::Application::get_version();
         if (semver::gt(gameVersion,mpData->maximumAppVersion)) {
-            reason.heldRef = GlobalNamespace::MultiplayerUnavailableReason(6);
+            (*reason) = GlobalNamespace::MultiplayerUnavailableReason(6);
             maximumBsVersion = static_cast<std::string>(mpData->maximumAppVersion);
             return true;
         }
@@ -147,7 +147,7 @@ MAKE_AUTO_HOOK_ORIG_MATCH(MultiplayerPlacementErrorCodeMethods_ToConnectionFaile
     case GlobalNamespace::MultiplayerPlacementErrorCode::MatchmakingTimeout:
         return GlobalNamespace::ConnectionFailedReason::FailedToFindMatch;
     case GlobalNamespace::MultiplayerPlacementErrorCode::MismatchedServerEnvironment:
-        return GlobalNamespace::ConnectionFailedReason::MismatchedServerEnvironment;
+        return GlobalNamespace::ConnectionFailedReason::IncompatibleServerEnvironment;
     default:
         return GlobalNamespace::ConnectionFailedReason::Unknown;
     }

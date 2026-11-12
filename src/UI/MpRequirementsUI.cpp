@@ -1,3 +1,4 @@
+#include "GlobalNamespace/BeatmapCharacteristicExtensions.hpp"
 #include "UI/MpRequirementsUI.hpp"
 #include "Beatmaps/Abstractions/MpBeatmapLevel.hpp"
 #include "Beatmaps/BeatSaverBeatmapLevel.hpp"
@@ -92,7 +93,7 @@ namespace MultiplayerCore::UI {
         if (!key.IsValid()) return;
 
         auto levelId = key.levelId;
-        auto localLevel = _beatmapLevelsModel->GetBeatmapLevel(levelId);
+        auto localLevel = _beatmapLevelsModel->GetBeatmapLevel(levelId, false);
         if (localLevel) { // we got a level to set reqs from
             SetRequirementsFromLevel(localLevel, key);
             return;
@@ -165,10 +166,10 @@ namespace MultiplayerCore::UI {
 
     void MpRequirementsUI::ColorsDismissed() { ShowRequirements(); }
 
-    void MpRequirementsUI::SetRequirementsFromLevel(GlobalNamespace::BeatmapLevel* level, GlobalNamespace::BeatmapKey& beatmapKey) {
+    void MpRequirementsUI::SetRequirementsFromLevel(GlobalNamespace::BeatmapLevel* level, const GlobalNamespace::BeatmapKey& beatmapKey) {
         ClearCells(_levelInfoCells);
 
-        auto customLevel = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(level).value_or(nullptr);
+        auto customLevel = i2c::try_cast<SongCore::SongLoader::CustomBeatmapLevel*>(level);
         // hacky way of being able to just break out of an "if" via break rather than a goto: label
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch-bool"
@@ -181,7 +182,7 @@ namespace MultiplayerCore::UI {
 
                 // DEBUG("Setting requirements from custom level, level details ptr: {}", fmt::ptr(&levelDetailsOpt.value()));
                 auto& levelDetails = levelDetailsOpt->get();
-                auto difficultyDetailsOpt = levelDetails.TryGetCharacteristicAndDifficulty(beatmapKey.beatmapCharacteristic->serializedName, beatmapKey.difficulty);
+                auto difficultyDetailsOpt = levelDetails.TryGetCharacteristicAndDifficulty(std::string(::GlobalNamespace::BeatmapCharacteristicExtensions::SerializedName(beatmapKey.characteristic)), beatmapKey.difficulty);
 
                 if (difficultyDetailsOpt.has_value()) {
                     auto& difficultyDetails = difficultyDetailsOpt->get();
@@ -324,7 +325,7 @@ namespace MultiplayerCore::UI {
     UnityEngine::Sprite* MpRequirementsUI::get_##icon##Icon() { \
         if (!_##icon##Icon || _##icon##Icon->m_CachedPtr.IsNull()) { \
             auto& data = Assets::icon##_png;\
-            _##icon##Icon = BSML::Utilities::LoadSpriteRaw(data);\
+            _##icon##Icon = BSML::Utilities::LoadSpriteRaw(ArrayW<uint8_t>(std::vector<uint8_t>(data.dataStart, data.dataEnd)));\
         }\
         return _##icon##Icon;\
     }

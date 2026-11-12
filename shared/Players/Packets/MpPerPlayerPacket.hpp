@@ -1,5 +1,6 @@
 #include "../../Networking/Abstractions/MpPacket.hpp"
 
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 
 DECLARE_CLASS_CUSTOM(MultiplayerCore::Players::Packets, MpPerPlayerPacket, MultiplayerCore::Networking::Abstractions::MpPacket) {

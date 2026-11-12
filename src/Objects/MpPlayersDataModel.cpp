@@ -1,3 +1,5 @@
+#include "Networking/MultiplayerTypes.hpp"
+#include "GlobalNamespace/BeatmapCharacteristicExtensions.hpp"
 #include "Objects/MpPlayersDataModel.hpp"
 #include "Beatmaps/Packets/MpBeatmapPacket.hpp"
 #include "logging.hpp"
@@ -8,7 +10,7 @@
 #include "GlobalNamespace/BeatmapCharacteristicCollection.hpp"
 #include "GlobalNamespace/BeatmapCharacteristicSO.hpp"
 #include "GlobalNamespace/LobbyPlayerData.hpp"
-#include "GlobalNamespace/IMultiplayerSessionManager.hpp"
+#include "GlobalNamespace/IBeatSaberMultiplayerSessionManager.hpp"
 
 DEFINE_TYPE(MultiplayerCore::Objects, MpPlayersDataModel);
 
@@ -41,26 +43,26 @@ namespace MultiplayerCore::Objects {
     }
 
     void MpPlayersDataModel::HandlePlayerConnected(GlobalNamespace::IConnectedPlayer* connectedPlayer) {
-        Base::HandleMultiplayerSessionManagerPlayerConnected(connectedPlayer);
+        Base::HandleMultiplayerSessionManagerPlayerConnected(MultiplayerCore::ConnectedPlayer(connectedPlayer));
         GlobalNamespace::LobbyPlayerData* localPlayerData = nullptr;
-        if (_playersData->TryGetValue(localUserId, byref(localPlayerData)) && localPlayerData) {
-            SendMpBeatmapPacket(localPlayerData->beatmapKey, connectedPlayer);
+        if (_playersData->TryGetValue(localUserId, by_ref(localPlayerData)) && localPlayerData) {
+            SendMpBeatmapPacket(localPlayerData->beatmapKey, i2c::try_cast<GlobalNamespace::IBeatSaberConnectedPlayer*>(connectedPlayer));
         }
     }
 
-    void MpPlayersDataModel::HandleMpCoreBeatmapPacket(MpBeatmapPacket* packet, GlobalNamespace::IConnectedPlayer* player) {
-        DEBUG("'{}' selected song '{}'", player->get_userId(), packet->levelHash);
-        DEBUG("Looking for characteristic {} on {}", packet->characteristic, fmt::ptr(_beatmapCharacteristicCollection));
-        auto ch = _beatmapCharacteristicCollection->GetBeatmapCharacteristicBySerializedName(packet->characteristic);
-        auto beatmapKey = GlobalNamespace::BeatmapKey(ch, packet->difficulty, fmt::format("custom_level_{}", packet->levelHash));
+    void MpPlayersDataModel::HandleMpCoreBeatmapPacket(MpBeatmapPacket* packet, GlobalNamespace::IBeatSaberConnectedPlayer* player) {
+        DEBUG("'{}' selected song '{}'", MultiplayerCore::ConnectedPlayer(player)->get_userId(), packet->levelHash);
+        GlobalNamespace::BeatmapCharacteristic ch{};
+        if (!GlobalNamespace::BeatmapCharacteristicExtensions::BeatmapCharacteristicFromSerializedName(packet->characteristic, by_ref(ch))) return;
+        auto beatmapKey = GlobalNamespace::BeatmapKey(ch, packet->difficulty, fmt::format("custom_level_{}", packet->levelHash), GlobalNamespace::GameplayType::BeatSaber);
 
-        PutPlayerPacket(player->userId, packet);
-        SetPlayerBeatmapLevel(player->userId, beatmapKey);
+        PutPlayerPacket(MultiplayerCore::ConnectedPlayer(player)->get_userId(), packet);
+        SetPlayerBeatmapLevel(MultiplayerCore::ConnectedPlayer(player)->get_userId(), beatmapKey);
     }
 
     void MpPlayersDataModel::HandleMenuRpcManagerGetRecommendedBeatmap_override(StringW userId) {
         GlobalNamespace::LobbyPlayerData* localPlayerData = nullptr;
-        if (_playersData->TryGetValue(userId, byref(localPlayerData)) && localPlayerData) {
+        if (_playersData->TryGetValue(userId, by_ref(localPlayerData)) && localPlayerData) {
             SendMpBeatmapPacket(localPlayerData->beatmapKey, nullptr);
         }
 
@@ -74,14 +76,14 @@ namespace MultiplayerCore::Objects {
         Base::HandleMenuRpcManagerRecommendBeatmap(userId, beatmapKey);
     }
 
-    void MpPlayersDataModel::SetLocalPlayerBeatmapLevel_override(GlobalNamespace::BeatmapKey& beatmapKey) {
-        DEBUG("Setting local player beatmap level id '{}'\r\nCheck difficulty '{}'\r\nCheck characteristic '{}'\r\nCheck BeatmapKey Valid '{}'", beatmapKey.levelId, (int)beatmapKey.difficulty, beatmapKey.beatmapCharacteristic ? beatmapKey.beatmapCharacteristic->serializedName : "null", beatmapKey.IsValid());
+    void MpPlayersDataModel::SetLocalPlayerBeatmapLevel_override(const GlobalNamespace::BeatmapKey& beatmapKey) {
+        DEBUG("Setting local player beatmap level id '{}'\r\nCheck difficulty '{}'\r\nCheck characteristic '{}'\r\nCheck BeatmapKey Valid '{}'", beatmapKey.levelId, (int)beatmapKey.difficulty, std::string(::GlobalNamespace::BeatmapCharacteristicExtensions::SerializedName(beatmapKey.characteristic)), GlobalNamespace::BeatmapKey(beatmapKey).IsValid());
         SendMpBeatmapPacket(beatmapKey, nullptr);
 
-        Base::SetLocalPlayerBeatmapLevel(byref(beatmapKey));
+        Base::SetLocalPlayerBeatmapLevel(by_ref(beatmapKey));
     }
 
-    void MpPlayersDataModel::SendMpBeatmapPacket(GlobalNamespace::BeatmapKey beatmapKey, GlobalNamespace::IConnectedPlayer* player) {
+    void MpPlayersDataModel::SendMpBeatmapPacket(GlobalNamespace::BeatmapKey beatmapKey, GlobalNamespace::IBeatSaberConnectedPlayer* player) {
         DEBUG("Sending mp beatmap packet for level '{}'", beatmapKey.levelId);
 
         auto levelId = beatmapKey.levelId;
@@ -114,7 +116,7 @@ namespace MultiplayerCore::Objects {
 
     Beatmaps::Packets::MpBeatmapPacket* MpPlayersDataModel::GetPlayerPacket(StringW playerId) {
         Beatmaps::Packets::MpBeatmapPacket* value = nullptr;
-        _lastPlayerBeatmapPackets->TryGetValue(playerId, byref(value));
+        _lastPlayerBeatmapPackets->TryGetValue(playerId, by_ref(value));
         return value;
     }
 

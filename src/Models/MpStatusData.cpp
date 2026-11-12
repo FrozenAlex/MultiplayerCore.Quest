@@ -1,7 +1,7 @@
 #include "Models/MpStatusData.hpp"
 
 #include "logging.hpp"
-#include "beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "beatsaber-hook/shared/rapidjson.hpp"
 
 #include "GlobalNamespace/MultiplayerStatusData.hpp"
 

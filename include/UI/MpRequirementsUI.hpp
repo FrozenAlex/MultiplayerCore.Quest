@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Beatmaps/Packets/MpBeatmapPacket.hpp"
+#include "System/Object.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "lapiz/shared/macros.hpp"
 
@@ -85,7 +86,7 @@ DECLARE_CLASS_CODEGEN_INTERFACES(MultiplayerCore::UI, MpRequirementsUI, System::
     DECLARE_INSTANCE_METHOD(void, ShowRequirements);
 
     private:
-        void SetRequirementsFromLevel(GlobalNamespace::BeatmapLevel* level, GlobalNamespace::BeatmapKey& beatmapKey);
+        void SetRequirementsFromLevel(GlobalNamespace::BeatmapLevel* level, const GlobalNamespace::BeatmapKey& beatmapKey);
         void SetRequirementsFromPacket(Beatmaps::Packets::MpBeatmapPacket* packet);
         void SetNoRequirementsFound();
 

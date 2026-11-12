@@ -15,8 +15,8 @@
 #include "NodePoseSyncState/MpNodePoseSyncStateManager.hpp"
 #include "ScoreSyncState/MpScoreSyncStateManager.hpp"
 
-MAKE_AUTO_HOOK_ORIG_MATCH(MainSystemInit_InstallBindings, &::GlobalNamespace::MainSystemInit::InstallBindings, void, GlobalNamespace::MainSystemInit* self, Zenject::DiContainer* container, bool isRunningFromTests) {
-    MainSystemInit_InstallBindings(self, container, isRunningFromTests);
+MAKE_AUTO_HOOK_ORIG_MATCH(MainSystemInit_InstallBindings, &::GlobalNamespace::MainSystemInit::InstallBindings, void, GlobalNamespace::MainSystemInit* self, Zenject::DiContainer* container, BeatSaber::Destinations::Destination* destination) {
+    MainSystemInit_InstallBindings(self, container, destination);
 
     container->Unbind<GlobalNamespace::NetworkPlayerEntitlementChecker*>();
     auto bindarray = Lapiz::ArrayUtils::TypeArray<GlobalNamespace::NetworkPlayerEntitlementChecker*>();

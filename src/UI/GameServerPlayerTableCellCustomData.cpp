@@ -1,5 +1,6 @@
 #include "UI/GameServerPlayerTableCellCustomData.hpp"
 #include "Utilities.hpp"
+#include "GlobalNamespace/BeatmapCharacteristicCollection.hpp"
 #include "bsml/shared/Helpers/delegates.hpp"
 #include "bsml/shared/BSML/SharedCoroutineStarter.hpp"
 
@@ -52,7 +53,7 @@ namespace MultiplayerCore::UI {
         bool validKey = key.IsValid();
         bool displayLevelText = validKey;
         if (validKey) {
-            auto level = _gameServerPlayerTableCell->_beatmapLevelsModel->GetBeatmapLevel(key.levelId);
+            auto level = _gameServerPlayerTableCell->_beatmapLevelsModel->GetBeatmapLevel(key.levelId, false);
             auto levelHash = HashFromLevelID(key.levelId);
             _gameServerPlayerTableCell->_suggestedLevelText->text = level ? level->songName : nullptr;
             displayLevelText = level != nullptr;
@@ -68,7 +69,7 @@ namespace MultiplayerCore::UI {
                 displayLevelText = packet != nullptr || level != nullptr;
             }
 
-            _gameServerPlayerTableCell->_suggestedCharacteristicIcon->sprite = key.beatmapCharacteristic->icon;
+            _gameServerPlayerTableCell->_suggestedCharacteristicIcon->sprite = _gameServerPlayerTableCell->_beatmapCharacteristicCollection->GetBeatmapCharacteristicIcon(key.characteristic);
             _gameServerPlayerTableCell->_suggestedDifficultyText->text = GlobalNamespace::BeatmapDifficultyMethods::ShortName(key.difficulty);
         }
         SetLevelFoundValues(displayLevelText);
@@ -96,7 +97,7 @@ namespace MultiplayerCore::UI {
 
         _gameServerPlayerTableCell->_useModifiersButton->interactable = !connectedPlayer->isMe && anyModifiers && allowSelection;
         _gameServerPlayerTableCell->_kickPlayerButton->interactable = !connectedPlayer->isMe && hasKickPermissions && allowSelection;
-        _gameServerPlayerTableCell->_mutePlayerButton->gameObject->SetActive(false);
+
         if (getLevelEntitlementTask && !connectedPlayer->isMe) {
             static ConstString label("LABEL_CANT_START_GAME_DO_NOT_OWN_SONG");
             _gameServerPlayerTableCell->_useBeatmapButtonHoverHint->text = BGLib::Polyglot::Localization::Get(label);

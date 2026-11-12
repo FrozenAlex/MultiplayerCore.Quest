@@ -1,7 +1,8 @@
 #pragma once
 
+#include "beatsaber-hook/shared/utils.hpp"
 #include "../_config.h"
-#include "beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "beatsaber-hook/shared/rapidjson.hpp"
 
 #include "UnityEngine/Color.hpp"
 #include "GlobalNamespace/BeatmapDifficulty.hpp"
@@ -109,10 +110,10 @@ namespace MultiplayerCore::Utils {
 			MapColor obstacleColor;
         };
 
-        std::vector<const Contributor> contributors;
+        std::vector<Contributor> contributors;
         std::string customEnvironmentName;
         std::string customEnvironmentHash;
-        std::vector<const DifficultyData> difficulties;
+        std::vector<DifficultyData> difficulties;
         std::string defaultCharacteristicName;
 
         static inline std::optional<ExtraSongData> FromLevelHash(const std::string& levelId) {
@@ -128,7 +129,7 @@ namespace MultiplayerCore::Utils {
         }
 
         static inline std::optional<ExtraSongData> FromBeatmapLevel(GlobalNamespace::BeatmapLevel* level) {
-            auto customLevel = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(level).value_or(nullptr);
+            auto customLevel = i2c::try_cast<SongCore::SongLoader::CustomBeatmapLevel*>(level);
             if (!customLevel) return std::nullopt;
             return FromSaveData(customLevel->standardLevelInfoSaveDataV2.value_or(nullptr));
         }
@@ -164,6 +165,6 @@ namespace MultiplayerCore::Utils {
         ExtraSongData(const SongCore::CustomJSONData::CustomSaveDataInfo::BasicCustomLevelDetails& levelDetails);
     };
 }
-DEFINE_IL2CPP_ARG_TYPE(::MultiplayerCore::Utils::ExtraSongData::MapColor, "UnityEngine", "Color");
+namespace i2c::type_check { template<> struct no_arg_class<::MultiplayerCore::Utils::ExtraSongData::MapColor> { static Il2CppClass* get() { return i2c::class_of<UnityEngine::Color>(); } }; }
 
 #undef GET_COL

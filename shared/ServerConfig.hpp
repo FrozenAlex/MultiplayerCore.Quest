@@ -5,7 +5,7 @@
 #include "./_config.h"
 #include <string>
 #include "GlobalNamespace/DnsEndPoint.hpp"
-#include "beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "beatsaber-hook/shared/rapidjson.hpp"
 
 namespace MultiplayerCore {
     struct MPCORE_EXPORT ServerConfig {

@@ -5,7 +5,7 @@
 #include "GlobalNamespace/MultiplayerResultsPyramidView.hpp"
 #include "GlobalNamespace/MultiplayerPlayerResultsData.hpp"
 #include "GlobalNamespace/MultiplayerPlayersManager.hpp"
-#include "GlobalNamespace/IConnectedPlayer.hpp"
+#include "GlobalNamespace/IBeatSaberConnectedPlayer.hpp"
 #include "UnityEngine/Transform.hpp"
 #include "UnityEngine/GameObject.hpp"
 
@@ -16,9 +16,9 @@ MAKE_AUTO_HOOK_MATCH(MultiplayerOutroAnimationController_BindRingsAndAudio, &::G
     MultiplayerOutroAnimationController_BindRingsAndAudio(self, max5Rings, isMock, isDuel, resultsMocks);
 }
 
-static ListW<GlobalNamespace::IConnectedPlayer*> GetActivePlayersAttacher(ListW<GlobalNamespace::IConnectedPlayer*> allActiveAtGameStartPlayers) {
+static ListW<GlobalNamespace::IBeatSaberConnectedPlayer*> GetActivePlayersAttacher(ListW<GlobalNamespace::IBeatSaberConnectedPlayer*> allActiveAtGameStartPlayers) {
     // new list
-    auto activePlayers = ListW<GlobalNamespace::IConnectedPlayer*>::New();
+    auto activePlayers = ListW<GlobalNamespace::IBeatSaberConnectedPlayer*>::New();
 
     // take 4 max
     auto count = std::min((int)allActiveAtGameStartPlayers.size(), 4);
@@ -30,7 +30,7 @@ static ListW<GlobalNamespace::IConnectedPlayer*> GetActivePlayersAttacher(ListW<
 MAKE_AUTO_HOOK_MATCH(MultiplayerOutroAnimationController_BindOutroTimeline, &::GlobalNamespace::MultiplayerOutroAnimationController::BindOutroTimeline, void, GlobalNamespace::MultiplayerOutroAnimationController* self) {
     // save original data for restoring later
     auto originalData = self->_multiplayerPlayersManager->allActiveAtGameStartPlayers;
-    self->_multiplayerPlayersManager->_allActiveAtGameStartPlayers = *static_cast<System::Collections::Generic::List_1<GlobalNamespace::IConnectedPlayer*>*>(GetActivePlayersAttacher(originalData));
+    self->_multiplayerPlayersManager->_allActiveAtGameStartPlayers = *static_cast<System::Collections::Generic::List_1<GlobalNamespace::IBeatSaberConnectedPlayer*>*>(GetActivePlayersAttacher(originalData));
 
     // call original
     MultiplayerOutroAnimationController_BindOutroTimeline(self);

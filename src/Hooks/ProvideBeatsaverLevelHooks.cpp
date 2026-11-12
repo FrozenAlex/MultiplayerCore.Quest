@@ -25,22 +25,24 @@ MAKE_AUTO_HOOK_MATCH(BeatmapLevelsModel_CheckBeatmapLevelDataExistsAsync, &Globa
         if (SongCore::API::Loading::GetLevelByHash(levelHash)) return t;
 
         // custom level, not locally available, get on beatsaver
-        return MultiplayerCore::StartTask<bool>([=](){
+        safe_ptr<System::Threading::Tasks::Task_1<bool>*> original(t);
+        return MultiplayerCore::StartTask<bool>([original, levelHash = std::string(levelHash)](System::Threading::CancellationToken token){
             using namespace std::chrono_literals;
-            while (!(t->IsCompleted || t->IsCanceled)) std::this_thread::sleep_for(50ms);
             // if orig says it's available, cool beans
-            if (t->Result) return true;
+            if (MultiplayerCore::Await(original.ptr(), token)) return true;
 
             // check if map is on beatsaver
             auto beatmapRes = BeatSaver::API::GetBeatmapByHash(levelHash);
             if (beatmapRes.DataParsedSuccessful()) {
                 for (auto& v : beatmapRes.responseData->GetVersions()) {
                     if (v.GetHash() == levelHash) {
-                        bool downloaded = false;
-                        v.DownloadBeatmapAsync(*beatmapRes.responseData, [&downloaded](bool v){
-                            downloaded = true;
+                        auto completed = std::make_shared<std::promise<bool>>();
+                        auto downloaded = completed->get_future();
+                        v.DownloadBeatmapAsync(*beatmapRes.responseData, [completed](bool success){
+                            completed->set_value(success);
                         });
-                        while (!downloaded) std::this_thread::sleep_for(50ms);
+                        if (!downloaded.get()) return false;
+                        token.ThrowIfCancellationRequested();
 
                         SongCore::API::Loading::RefreshSongs().wait();
 
@@ -51,5 +53,5 @@ MAKE_AUTO_HOOK_MATCH(BeatmapLevelsModel_CheckBeatmapLevelDataExistsAsync, &Globa
                 }
             }
             return false;
-        });
+        }, cancelToken);
 }

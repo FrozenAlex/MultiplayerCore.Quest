@@ -1,3 +1,4 @@
+#include "Networking/MultiplayerTypes.hpp"
 #include "UI/MpLoadingIndicator.hpp"
 #include "logging.hpp"
 #include "assets.hpp"
@@ -27,7 +28,7 @@ int ILobbyPlayersDataModel_Count(GlobalNamespace::ILobbyPlayersDataModel* model)
 
 namespace MultiplayerCore::UI {
     void MpLoadingIndicator::ctor(
-        GlobalNamespace::IMultiplayerSessionManager* sessionManager,
+        GlobalNamespace::IBeatSaberMultiplayerSessionManager* sessionManager,
         GlobalNamespace::ILobbyGameStateController* gameStateController,
         GlobalNamespace::ILobbyPlayersDataModel* playersDataModel,
         GlobalNamespace::NetworkPlayerEntitlementChecker* entitlementChecker,
@@ -36,10 +37,10 @@ namespace MultiplayerCore::UI {
     ) {
         INVOKE_CTOR();
 
-        _sessionManager = sessionManager;
+        _sessionManager = MultiplayerCore::Session(sessionManager);
         _gameStateController = gameStateController;
         _playersDataModel = playersDataModel;
-        _entitlementChecker = il2cpp_utils::try_cast<Objects::MpEntitlementChecker>(entitlementChecker).value_or(nullptr);
+        _entitlementChecker = i2c::try_cast<Objects::MpEntitlementChecker*>(entitlementChecker);
         _levelLoader = levelLoader;
         _screenController = screenController;
     }
@@ -50,7 +51,7 @@ namespace MultiplayerCore::UI {
 
     void MpLoadingIndicator::Initialize() {
         BSML::parse_and_construct(Assets::LoadingIndicator_bsml, _screenController->get_transform(), this);
-        auto existingLoadingControl = UnityEngine::Resources::FindObjectsOfTypeAll<GlobalNamespace::LoadingControl*>()->First()->gameObject;
+        auto existingLoadingControl = UnityEngine::Resources::FindObjectsOfTypeAll<GlobalNamespace::LoadingControl*>().front()->gameObject;
         auto go = UnityEngine::Object::Instantiate(existingLoadingControl, vert->get_transform());
         _loadingControl = go->GetComponent<GlobalNamespace::LoadingControl*>();
         _loadingControl->Hide();

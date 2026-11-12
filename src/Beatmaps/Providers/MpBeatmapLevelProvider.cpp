@@ -1,10 +1,16 @@
+#include "beatsaber-hook/shared/threading.hpp"
+#include "beatsaber-hook/shared/safeptr.hpp"
+#include <mutex>
 #include "Beatmaps/Providers/MpBeatmapLevelProvider.hpp"
 #include "Beatmaps/NetworkBeatmapLevel.hpp"
 #include "Beatmaps/LocalBeatmapLevel.hpp"
 #include "Beatmaps/BeatSaverBeatmapLevel.hpp"
 #include "Beatmaps/BeatSaverPreviewMediaData.hpp"
 
-#include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
+#include "beatsaber-hook/shared/api.hpp"
+#include "beatsaber-hook/shared/members.hpp"
+#include "beatsaber-hook/shared/types.hpp"
+#include "beatsaber-hook/shared/utils.hpp"
 #include "songcore/shared/SongCore.hpp"
 #include "beatsaverplusplus/shared/BeatSaver.hpp"
 
@@ -14,10 +20,12 @@
 
 #include "Utilities.hpp"
 #include "logging.hpp"
+#include "System/ValueTuple_3.hpp"
 
 DEFINE_TYPE(MultiplayerCore::Beatmaps::Providers, MpBeatmapLevelProvider);
 
 namespace MultiplayerCore::Beatmaps::Providers {
+    static std::mutex beatsaverCacheMutex;
     void MpBeatmapLevelProvider::ctor() {
         INVOKE_CTOR();
         _hashToNetworkLevels = HashToLevelDict::New_ctor();
@@ -31,13 +39,18 @@ namespace MultiplayerCore::Beatmaps::Providers {
     }
 
     std::future<GlobalNamespace::BeatmapLevel*> MpBeatmapLevelProvider::GetBeatmapFromBeatSaverAsync(const std::string& levelHash) {
-        return il2cpp_utils::il2cpp_async(std::launch::async, std::bind(&MpBeatmapLevelProvider::GetBeatmapFromBeatSaver, this, levelHash));
+        safe_ptr<MpBeatmapLevelProvider*> owner(this);
+        return il2cpp_async(std::launch::async, [owner, levelHash]() mutable {
+            auto liveOwner = std::move(owner);
+            return liveOwner->GetBeatmapFromBeatSaver(levelHash);
+        });
     }
 
     GlobalNamespace::BeatmapLevel* MpBeatmapLevelProvider::GetBeatmapFromBeatSaver(std::string levelHash) {
         GlobalNamespace::BeatmapLevel* level = nullptr;
-        if (_hashToBeatsaverLevels->TryGetValue(levelHash, byref(level))) {
-            return level;
+        {
+            std::lock_guard lock(beatsaverCacheMutex);
+            if (_hashToBeatsaverLevels->TryGetValue(levelHash, by_ref(level))) return level;
         }
 
         auto beatmapRes = BeatSaver::API::GetBeatmapByHash(static_cast<std::string>(levelHash));
@@ -58,10 +71,10 @@ namespace MultiplayerCore::Beatmaps::Providers {
                 }
             }
             try {
+                std::lock_guard lock(beatsaverCacheMutex);
+                if (_hashToBeatsaverLevels->TryGetValue(levelHash, by_ref(level))) return level;
                 level = BeatSaverBeatmapLevel::Make(levelHash, result);
-                // Somehow it can happen that the level is already in the cache at this point, despite us checking before
-                // TODO: Check if that can still happen
-                if (!_hashToBeatsaverLevels->ContainsKey(levelHash)) _hashToBeatsaverLevels->Add(levelHash, level);
+                _hashToBeatsaverLevels->Add(levelHash, level);
                 return level;
             }
             catch (const std::exception& e) {
@@ -84,7 +97,7 @@ namespace MultiplayerCore::Beatmaps::Providers {
     GlobalNamespace::BeatmapLevel* MpBeatmapLevelProvider::GetBeatmapFromPacket(Packets::MpBeatmapPacket* packet) {
         // cache network levels
         GlobalNamespace::BeatmapLevel* level = nullptr;
-        if (_hashToNetworkLevels->TryGetValue(packet->levelHash, byref(level))) {
+        if (_hashToNetworkLevels->TryGetValue(packet->levelHash, by_ref(level))) {
             return level;
         }
 
@@ -95,23 +108,23 @@ namespace MultiplayerCore::Beatmaps::Providers {
 
     GlobalNamespace::BeatmapLevel* MpBeatmapLevelProvider::TryGetBeatmapFromPacketHash(std::string levelHash) {
         GlobalNamespace::BeatmapLevel* level = nullptr;
-        if (_hashToNetworkLevels->TryGetValue(levelHash, byref(level))) {
+        if (_hashToNetworkLevels->TryGetValue(levelHash, by_ref(level))) {
             return level;
         }
         return nullptr;
     }
 
-    GlobalNamespace::BeatmapLevel* MpBeatmapLevelProvider::AddBasicBeatmapDataToLevel(GlobalNamespace::BeatmapLevel* level, GlobalNamespace::BeatmapKey& beatmapKey, Packets::MpBeatmapPacket* packet) {
-        using BasicDataDict = System::Collections::Generic::Dictionary_2<System::ValueTuple_2<UnityW<GlobalNamespace::BeatmapCharacteristicSO>, GlobalNamespace::BeatmapDifficulty>, GlobalNamespace::BeatmapBasicData*>;
-        BasicDataDict* dict = reinterpret_cast<BasicDataDict*>(level->beatmapBasicData);
+    GlobalNamespace::BeatmapLevel* MpBeatmapLevelProvider::AddBasicBeatmapDataToLevel(GlobalNamespace::BeatmapLevel* level, const GlobalNamespace::BeatmapKey& beatmapKey, Packets::MpBeatmapPacket* packet) {
+        using BasicDataDict = System::Collections::Generic::Dictionary_2<System::ValueTuple_3<GlobalNamespace::GameplayType, GlobalNamespace::BeatmapCharacteristic, GlobalNamespace::BeatmapDifficulty>, GlobalNamespace::BeatmapBasicData*>;
+        BasicDataDict* dict = reinterpret_cast<BasicDataDict*>(level->_gameplayTypeBeatmapBasicDatas);
 
         if (!dict) {
             dict = BasicDataDict::New_ctor();
-            level->____beatmapBasicDatas = dict;
+            level->_gameplayTypeBeatmapBasicDatas = dict;
         }
 
-        auto key = System::ValueTuple_2<UnityW<GlobalNamespace::BeatmapCharacteristicSO>, GlobalNamespace::BeatmapDifficulty>(
-            beatmapKey.beatmapCharacteristic,
+        auto key = System::ValueTuple_3<GlobalNamespace::GameplayType, GlobalNamespace::BeatmapCharacteristic, GlobalNamespace::BeatmapDifficulty>(
+            beatmapKey.gameplayType, beatmapKey.characteristic,
             beatmapKey.difficulty
         );
 
@@ -128,7 +141,7 @@ namespace MultiplayerCore::Beatmaps::Providers {
             );
         }
 
-        level->____beatmapBasicDatas = dict;
+        level->_gameplayTypeBeatmapBasicDatas = dict;
         return level;
     }
 }

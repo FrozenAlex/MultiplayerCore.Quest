@@ -1,4 +1,5 @@
 #include "Patchers/ModeSelectionPatcher.hpp"
+#include "Hooks/NetworkConfigHooks.hpp"
 
 DEFINE_TYPE(MultiplayerCore::Patchers, ModeSelectionPatcher);
 
@@ -18,7 +19,7 @@ namespace MultiplayerCore::Patchers {
     }
 
     bool ModeSelectionPatcher::UpdateStatusUrl() {
-        auto statusUrl = _networkConfig->get_multiplayerStatusUrl();
+        auto statusUrl = StringW(MultiplayerCore::Hooks::NetworkConfigHooks::GetCurrentServer()->masterServerStatusUrl);
         if (statusUrl == lastStatusUrl) return false;
         lastStatusUrl = statusUrl;
         return true;

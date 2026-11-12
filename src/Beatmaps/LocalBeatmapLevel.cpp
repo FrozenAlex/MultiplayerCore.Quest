@@ -10,7 +10,7 @@ namespace MultiplayerCore::Beatmaps {
 
     void LocalBeatmapLevel::ctor_2(StringW hash, GlobalNamespace::BeatmapLevel* localLevel) {
         INVOKE_CTOR();
-        INVOKE_BASE_CTOR(classof(Abstractions::MpBeatmapLevel*));
+        INVOKE_BASE_CTOR(i2c::class_of<Abstractions::MpBeatmapLevel*>());
 
         // invoke beatmaplevel ctor
         _ctor(
@@ -30,7 +30,7 @@ namespace MultiplayerCore::Beatmaps {
             localLevel->songDuration,
             localLevel->contentRating,
             localLevel->previewMediaData,
-            localLevel->____beatmapBasicDatas // Use private field to avoid conversion problems
+            localLevel->_gameplayTypeBeatmapBasicDatas // Use private field to avoid conversion problems
         );
 
         _localLevel = localLevel;

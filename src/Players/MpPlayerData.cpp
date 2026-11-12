@@ -6,7 +6,7 @@ DEFINE_TYPE(MultiplayerCore::Players, MpPlayerData);
 namespace MultiplayerCore::Players {
     void MpPlayerData::New() {
         INVOKE_CTOR();
-        INVOKE_BASE_CTOR(classof(Networking::Abstractions::MpPacket*));
+        INVOKE_BASE_CTOR(i2c::class_of<Networking::Abstractions::MpPacket*>());
         std::string version = UnityEngine::Application::get_version();
         std::replace(version.begin(), version.end(), '_', '-');
         gameVersion = version;

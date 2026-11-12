@@ -1,85 +1,59 @@
 #pragma once
-
-#include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
+#include "beatsaber-hook/shared/threading.hpp"
+#include "beatsaber-hook/shared/safeptr.hpp"
+#include "System/Exception.hpp"
 #include "System/Threading/Tasks/Task_1.hpp"
+#include "System/Runtime/CompilerServices/TaskAwaiter_1.hpp"
+#include "System/Threading/CancellationToken.hpp"
+#include "System/Threading/CancellationTokenSource.hpp"
 #include <chrono>
 #include <thread>
-
 namespace MultiplayerCore {
-    template<typename T>
-    using Task = System::Threading::Tasks::Task_1<T>;
-    using System::Threading::CancellationToken;
-
-    template<typename Ret, typename T>
-    requires(std::is_invocable_r_v<Ret, T>)
-    static void task_func(Task<Ret>* task, T&& func) {
-        task->TrySetResult(std::invoke(std::forward<T>(func)));
-    }
-
-    template<typename Ret, typename T>
-    requires(std::is_invocable_r_v<Ret, T, CancellationToken>)
-    static void task_cancel_func(Task<Ret>* task, T&& func, CancellationToken&& cancelToken) {
-        using namespace std::chrono_literals;
-        // start func as an std::future
-        auto fut = il2cpp_utils::il2cpp_async(std::forward<T>(func), std::forward<CancellationToken>(cancelToken));
-        // await the future
-        while (fut.wait_for(0ns) != std::future_status::ready && !cancelToken.IsCancellationRequested) std::this_thread::yield();
-
-        // if cancellation wasn't requested, set result, else set canceled
-        if (!cancelToken.IsCancellationRequested) {
-            task->TrySetResult(fut.get());
-        } else {
-            task->TrySetCanceled(cancelToken);
+template<class T> using Task = System::Threading::Tasks::Task_1<T>;
+using System::Threading::CancellationToken;
+// Root the task across the native worker and always complete it on failure.
+template<class Ret, class F> requires std::is_invocable_r_v<Ret, F>
+Task<Ret>* StartTask(F&& function) {
+    safe_ptr<Task<Ret>*> task(Task<Ret>::New_ctor());
+    il2cpp_thread([task, function = std::forward<F>(function)]() mutable {
+        try { task->TrySetResult(function()); }
+        catch (const std::exception& ex) { task->TrySetException(System::Exception::New_ctor(ex.what())); }
+        catch (...) { task->TrySetException(System::Exception::New_ctor("MultiplayerCore task failed")); }
+    }).detach();
+    return task.ptr();
+}
+template<class Ret, class F> requires std::is_invocable_r_v<Ret, F, CancellationToken>
+Task<Ret>* StartTask(F&& function, CancellationToken cancelToken) {
+    safe_ptr<Task<Ret>*> task(Task<Ret>::New_ctor());
+    safe_ptr<System::Threading::CancellationTokenSource*> source(cancelToken._source);
+    il2cpp_thread([task, source, cancelToken, function = std::forward<F>(function)]() mutable {
+        try {
+            if (cancelToken.IsCancellationRequested) { task->TrySetCanceled(cancelToken); return; }
+            auto result = function(cancelToken);
+            if (cancelToken.IsCancellationRequested) task->TrySetCanceled(cancelToken);
+            else task->TrySetResult(result);
+        } catch (const std::exception& ex) {
+            if (cancelToken.IsCancellationRequested) task->TrySetCanceled(cancelToken);
+            else task->TrySetException(System::Exception::New_ctor(ex.what()));
+        } catch (...) {
+            if (cancelToken.IsCancellationRequested) task->TrySetCanceled(cancelToken);
+            else task->TrySetException(System::Exception::New_ctor("MultiplayerCore task failed"));
         }
+    }).detach();
+    return task.ptr();
+}
+template<class Ret, class F, class... Args> auto StartThread(F&& fn, Args&&... args) {
+    return StartTask<Ret>(std::forward<F>(fn), std::forward<Args>(args)...);
+}
+template<class Ret, class F, class... Args> auto StartSafePtrThread(F&& fn, Args&&... args) {
+    return safe_ptr<Task<Ret>*>(StartTask<Ret>(std::forward<F>(fn), std::forward<Args>(args)...));
+}
+template<class T> T Await(Task<T>* raw, CancellationToken token = {}) {
+    safe_ptr<Task<T>*> task(raw);
+    while (!task->IsCompleted) {
+        token.ThrowIfCancellationRequested();
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
-
-    template<typename Ret, typename T>
-    requires(!std::is_same_v<Ret, void> && std::is_invocable_r_v<Ret, T>)
-    static Task<Ret>* StartTask(T&& func) {
-        auto t = Task<Ret>::New_ctor();
-        il2cpp_utils::il2cpp_aware_thread(&task_func<Ret, T>, t, std::forward<T>(func)).detach();
-        return t;
-    }
-
-    template<typename Ret, typename T>
-    requires(!std::is_same_v<Ret, void> && std::is_invocable_r_v<Ret, T>)
-    static SafePtr<Task<Ret>> StartSafePtrThread(T&& func) {
-        auto t = SafePtr<Task<Ret>>(Task<Ret>::New_ctor());
-        std::thread(&task_func<Ret, T>, t, std::forward<T>(func)).detach();
-        return t;
-    }
-
-    // Only use when keeping a reference to the task inside a custom type (C# class)
-    template<typename Ret, typename T>
-    requires(!std::is_same_v<Ret, void> && std::is_invocable_r_v<Ret, T>)
-    static Task<Ret>* StartThread(T&& func) {
-        auto t = Task<Ret>::New_ctor();
-        std::thread(&task_func<Ret, T>, t, std::forward<T>(func)).detach();
-        return t;
-    }
-
-    template<typename Ret, typename T>
-    requires(!std::is_same_v<Ret, void> && std::is_invocable_r_v<Ret, T, CancellationToken>)
-    static Task<Ret>* StartTask(T&& func, CancellationToken&& cancelToken) {
-        auto t = Task<Ret>::New_ctor();
-        il2cpp_utils::il2cpp_aware_thread(&task_cancel_func<Ret, T>, t, std::forward<T>(func), std::forward<CancellationToken>(cancelToken)).detach();
-        return t;
-    }
-
-    template<typename Ret, typename T>
-    requires(!std::is_same_v<Ret, void> && std::is_invocable_r_v<Ret, T, CancellationToken>)
-    static SafePtr<Task<Ret>> StartSafePtrThread(T&& func, CancellationToken&& cancelToken) {
-        auto t = SafePtr<Task<Ret>>(Task<Ret>::New_ctor());
-        std::thread(&task_cancel_func<Ret, T>, t, std::forward<T>(func), std::forward<CancellationToken>(cancelToken)).detach();
-        return t;
-    }
-
-    // Only use when keeping a reference to the task inside a custom type (C# class)
-    template<typename Ret, typename T>
-    requires(!std::is_same_v<Ret, void> && std::is_invocable_r_v<Ret, T, CancellationToken>)
-    static Task<Ret>* StartThread(T&& func, CancellationToken&& cancelToken) {
-        auto t = Task<Ret>::New_ctor();
-        std::thread(&task_cancel_func<Ret, T>, t, std::forward<T>(func), std::forward<CancellationToken>(cancelToken)).detach();
-        return t;
-    }
+    return task->GetAwaiter().GetResult();
+}
 }

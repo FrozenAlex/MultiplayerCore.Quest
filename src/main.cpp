@@ -24,7 +24,7 @@ MPCORE_EXPORT_FUNC void setup(CModInfo* info) {
 
 MPCORE_EXPORT_FUNC void late_load() {
 
-    il2cpp_functions::Init();
+    i2c::functions::initialize();
     custom_types::Register::AutoRegister();
     MultiplayerCore::Hooking::InstallHooks();
     BSML::Init();
